@@ -15,3 +15,7 @@ checkpoints/
 *.local.yaml
 
 .DS_Store
+
+# Local virtualenv
+.venv/
+venv/
