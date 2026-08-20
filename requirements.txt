@@ -1,0 +1,16 @@
+# Core
+numpy>=1.26
+pyyaml>=6.0
+opencv-contrib-python>=4.9   # includes cv2.aruco
+dataclasses-json>=0.6
+
+# Data / policy (Step 3-5) — install when host PC is confirmed (Step 0)
+# lerobot @ git+https://github.com/huggingface/lerobot.git
+# torch>=2.2
+# torchvision>=0.17
+
+# Anomaly detector distillation (Step 6) — install on the GPU machine only
+# transformers>=4.40   # for V-JEPA checkpoint loading, if used via HF
+
+# Testing
+pytest>=8.0

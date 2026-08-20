@@ -1,0 +1,85 @@
+# jenga-safety-gate config
+# Fill in real values as each plan step is completed. Do not delete keys —
+# downstream scripts assume this shape even before values are real.
+
+hardware:
+  host_pc:
+    has_gpu: false            # TODO(Step 0): confirm and set correctly
+    gpu_name: null            # e.g. "RTX 4070" — null if has_gpu is false
+  distillation_machine: "host_pc"   # "host_pc" | "cloud" | "borrowed"
+  edge_device: "orange_pi_zero_2w"
+
+arm:
+  model: "SO-101"
+  # Calibration units are raw servo ticks (0-4095 typical for STS3215).
+  # These MUST be re-populated from your actual calibration table before
+  # any recording — do not trust placeholder values.
+  joints:
+    shoulder_pan:   {min: null, max: null, home: null}
+    shoulder_lift:  {min: null, max: null, home: null}
+    elbow_flex:     {min: null, max: null, home: null}
+    wrist_flex:     {min: null, max: null, home: null}   # recalibrate: was asymmetric (743-3157)
+    wrist_roll:     {min: null, max: null, home: null}
+    gripper:        {min: null, max: null, home: null}   # recalibrate for full range
+
+vr_control:
+  server_url: "https://192.168.5.27:8443"
+  # z_floor is in meters, in the arm base frame. Must be measured from the
+  # actual table surface (jog gripper to contact, read FK Z), NOT guessed.
+  # A previous session set this to -0.05 as a workaround for a miscalibrated
+  # ground plane — that removed a real safety constraint. Replace with a
+  # measured value before Step 3.
+  z_floor_m: null
+  z_floor_measured: false
+
+cameras:
+  overhead:
+    device_index: null
+    resolution: [1280, 720]
+    fps: 30
+    fixed: false            # set true only after physically locked down (Step 1)
+  side:
+    device_index: null
+    resolution: [1280, 720]
+    fps: 30
+    fixed: false
+  aruco:
+    dictionary: "DICT_4X4_50"
+    marker_length_m: 0.03
+
+data:
+  dataset_root: "./data/episodes"
+  reference_photos_dir: "./data/reference_photos"
+  scenario_categories:
+    - stable_easy
+    - stable_tight
+    - leaning
+    - near_collapse
+    - off_center
+    - recovery
+  min_sessions_per_category:
+    stable_easy: 5
+    stable_tight: 4
+    leaning: 4
+    near_collapse: 3
+    off_center: 3
+    recovery: 3
+
+policy:
+  type: "ACT"          # start here per plan; diffusion policy is a documented next step, not first
+  checkpoint_dir: "./checkpoints/policy"
+  chunk_size: 100       # ACT action-chunk size, tune during Step 5
+
+anomaly_detector:
+  vjepa_checkpoint: "vjepa_vit_small"   # start small; domain is fixed-camera, single-object
+  student_arch: "shallow_cnn"           # "shallow_cnn" | "mlp_on_features"
+  checkpoint_dir: "./checkpoints/anomaly_detector"
+  precision_recall_floor: 0.6           # must clear this on the 75-frame validation set
+
+safety_gate:
+  # Threshold is intentionally left null. It must be tuned ONLY against the
+  # Step 6 validation set and then locked (see PLAN.md Step 7) — never
+  # tuned against live Step 8 test runs.
+  anomaly_threshold: null
+  threshold_locked: false
+  fallback_on_gate_failure: "block"     # fail-closed by default

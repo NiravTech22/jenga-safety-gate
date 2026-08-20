@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# Data and logs are generated, not source — real episode data belongs in
+# Git LFS or external storage once Step 4 produces real recordings.
+data/episodes/
+data/reference_photos/
+logs/
+checkpoints/
+
+# Local env / secrets
+.env
+*.local.yaml
+
+.DS_Store
