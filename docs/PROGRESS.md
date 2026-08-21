@@ -5,16 +5,21 @@ this file is the log.
 
 | Step | Status | Notes | Date |
 |---|---|---|---|
-| 0 — Hardware split | ⬜ Not started | Confirm host PC GPU in config.yaml | |
-| 1 — Camera rig | ⬜ Not started | | |
-| 2 — Tower-state CV | ⬜ Not started | | |
-| 3 — Recording pipeline | ⬜ Not started | Repo scaffolding for this exists (`src/data/recorder.py`) | |
+| 0 — Hardware split | ❌ Blocked | `has_gpu: false` with `distillation_machine: host_pc`. Needs a real decision before Step 6 — `scripts/00_check_hardware.py` exits 1 until then | |
+| 1 — Camera rig | ✅ Done (sim) | `scripts/01_capture_reference.py`: 21 reference pairs, both cameras calibrated from the empty table, occupancy model fitted. Hardware capture still to do | 2026-08-21 |
+| 2 — Tower-state CV | ✅ Done (sim) | `scripts/02_validate_tower_state.py`: 20/20 trials, 720/720 slots, mean lean error 0.23° | 2026-08-21 |
+| 3 — Recording pipeline | 🟨 In progress | `src/data/recorder.py` works dry-run; needs wiring to the sim/hardware frame source | |
 | 4 — Data campaign | ⬜ Not started | 0 / 22 sessions | |
 | 5 — Baseline policy | ⬜ Not started | | |
-| 6 — Anomaly detector | ⬜ Not started | | |
-| 7 — Wire gate | ⬜ Not started | Gate logic scaffolding exists (`src/safety/gate.py`) | |
+| 6 — Anomaly detector | ⬜ Not started | Validation harness exists; distillation blocked on Step 4 | |
+| 7 — Wire gate | ⬜ Not started | Gate logic + threshold locking implemented (`src/safety/gate.py`) | |
 | 8 — Gated run | ⬜ Not started | | |
-| 9 — Comparison | ⬜ Not started | Table generator exists (`src/eval/compare.py`) | |
+| 9 — Comparison | ⬜ Not started | Table generator + verdict logic exist (`src/eval/compare.py`) | |
+
+**Backend note:** steps marked "(sim)" were completed against the simulation
+backend (`docs/SIMULATION.md`), which substitutes for hardware at frame
+capture only. They must be re-run on the physical rig before any number
+produced downstream counts as a result.
 
 Legend: ⬜ not started · 🟨 in progress · ✅ done · ❌ blocked (note why)
 

@@ -83,3 +83,26 @@ safety_gate:
   anomaly_threshold: null
   threshold_locked: false
   fallback_on_gate_failure: "block"     # fail-closed by default
+
+# --------------------------------------------------------------------------- #
+# Runtime backend (added with the simulation backend)
+# --------------------------------------------------------------------------- #
+runtime:
+  # "sim" runs the whole pipeline against the deterministic tower simulation
+  # so Steps 1-9 are executable before the physical rig exists. "hardware"
+  # is the real rig. Every artifact records which produced it; nothing
+  # generated under "sim" is evidence for the thesis, only evidence that the
+  # pipeline is wired correctly. See docs/SIMULATION.md.
+  backend: "sim"          # "sim" | "hardware"
+  seed: 0
+
+perception:
+  num_layers: 12
+  calibration_dir: "./data/calibration"
+  # Threshold sits this many standard deviations below the mean brightness of
+  # a known-occupied block face, measured from the Step 1 reference photos.
+  occupancy_sigma: 4.0
+  reference_pairs: 20     # PLAN.md Step 1 asks for 20 reference photos
+  validation:
+    trials: 20            # Step 2 exit condition is 20/20
+    lean_tolerance_deg: 1.0

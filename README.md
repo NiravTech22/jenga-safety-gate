@@ -20,6 +20,8 @@ conditions are load-bearing, not decorative.
 config/                 Hardware + experiment configuration
 src/hardware/           Arm interface, camera rig control
 src/perception/         Camera calibration, classical-CV tower-state extraction
+src/sim/                Tower simulation + two-camera renderer (stands in for hardware)
+src/rig.py              Marker layout and tower geometry, shared by sim and perception
 src/data/                Episode schema, LeRobot-compatible recorder
 src/policy/              ACT training + inference wrappers
 src/safety/              Invariant event schema, anomaly detector, execute/block gate
@@ -31,22 +33,35 @@ docs/                    PLAN.md (source of truth), PROGRESS.md (status tracker)
 
 ## Running order
 
-Scripts in `scripts/` are numbered to match the plan steps exactly. `00` through
-`03` can be run and iterated on without any Jenga-specific data. `04` onward
-requires the physical rig. Do not run a script until the previous step's exit
+Scripts in `scripts/` are numbered to match the plan steps exactly. `00` through `03` run end to end today on the simulation backend. `04` onward
+is still being built out. Do not run a script until the previous step's exit
 condition (see PLAN.md) is actually met — the pipeline is intentionally not
 forgiving about this, because silent data misalignment is the most common way
 projects like this quietly fail.
 
+## Backends
+
+The pipeline runs against either a deterministic simulation or the physical
+rig, selected by `runtime.backend` in `config.yaml`. The two share every line
+of code downstream of frame capture. See [`docs/SIMULATION.md`](docs/SIMULATION.md)
+for what the simulation does and does not model — importantly, results
+produced under `sim` are evidence that the pipeline is wired correctly, never
+evidence for the thesis, and every artifact records which backend produced it.
+
 ## What's real vs. stubbed right now
 
-This initial commit implements the parts that don't require the physical rig or
-a GPU: the episode schema, the Invariant event schema, the ArUco-based
-tower-state pipeline skeleton, the recorder, the gate logic, and the metrics /
-comparison-table code. Policy training, V-JEPA distillation, and the Orange Pi
-deployment are stubbed with clear interfaces and TODOs — they need real camera
-frames and real demonstration data before they can be anything but scaffolding.
-See each module's docstring for exactly what's implemented vs. stubbed.
+Implemented and tested: the episode and Invariant event schemas, the tower
+simulation, the two-camera renderer, ArUco pose recovery, tower-state
+extraction (occupancy + lean), the recorder, the fail-closed gate with
+threshold locking, and the metrics/comparison code.
+
+Steps 1 and 2 are complete against the simulation backend: `20/20` on the
+known-configuration validation with `720/720` slots correct and 0.23° mean
+lean error. Both still need re-running on hardware.
+
+Still stubbed: the data campaign (Step 4), ACT policy training (Step 5),
+V-JEPA distillation (Step 6), and the gated run (Step 8). Each script says
+exactly what it is blocked on.
 
 ## Hardware assumptions (Step 0)
 
