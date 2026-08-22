@@ -22,3 +22,6 @@ checkpoints/
 # Local virtualenv
 .venv/
 venv/
+
+# Third-party robot assets (SO-ARM100 upstream, fetched not vendored)
+data/assets/
