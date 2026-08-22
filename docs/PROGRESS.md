@@ -5,7 +5,7 @@ this file is the log.
 
 | Step | Status | Notes | Date |
 |---|---|---|---|
-| 0 — Hardware split | ❌ Blocked | `has_gpu: false` with `distillation_machine: host_pc`. Needs a real decision before Step 6 — `scripts/00_check_hardware.py` exits 1 until then | |
+| 0 — Hardware split | ✅ Done | RTX 3050 8 GB (CC 8.6), Ryzen 5 5600X, 15.5 GB RAM — measured, not assumed. Distillation stays on host_pc, constrained to the smallest V-JEPA ViT with embeddings cached to disk. `scripts/00_check_hardware.py` exits 0 | 2026-08-22 |
 | 1 — Camera rig | ✅ Done (sim) | `scripts/01_capture_reference.py`: 21 reference pairs, both cameras calibrated from the empty table, occupancy model fitted. Hardware capture still to do | 2026-08-21 |
 | 2 — Tower-state CV | ✅ Done (sim) | `scripts/02_validate_tower_state.py`: 20/20 trials, 720/720 slots, mean lean error 0.23° | 2026-08-21 |
 | 3 — Recording pipeline | 🟨 In progress | `src/data/recorder.py` works dry-run; needs wiring to the sim/hardware frame source | |
@@ -15,6 +15,11 @@ this file is the log.
 | 7 — Wire gate | ⬜ Not started | Gate logic + threshold locking implemented (`src/safety/gate.py`) | |
 | 8 — Gated run | ⬜ Not started | | |
 | 9 — Comparison | ⬜ Not started | Table generator + verdict logic exist (`src/eval/compare.py`) | |
+
+**Step 6 risk carried forward:** 8 GB VRAM is enough for ViT-S inference and
+a shallow student, and nothing larger. If measurement at Step 6 says
+otherwise, move distillation to a rented GPU rather than shrinking the
+experiment to fit the machine.
 
 **Backend note:** steps marked "(sim)" were completed against the simulation
 backend (`docs/SIMULATION.md`), which substitutes for hardware at frame
