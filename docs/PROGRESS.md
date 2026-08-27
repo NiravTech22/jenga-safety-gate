@@ -28,6 +28,21 @@ produced downstream counts as a result.
 
 Legend: ⬜ not started · 🟨 in progress · ✅ done · ❌ blocked (note why)
 
+## Teleop accuracy
+
+Before Step 4 collection begins, characterise the arm rather than adjusting
+it by feel: `python scripts/diagnose_teleop.py run --hardware`. The three
+issues below are all things that report reads directly, and it distinguishes
+faults that feel identical in the headset but are fixed in different layers
+(a constant offset, a span error, lost motion, and command latency).
+
+`scripts/diagnose_teleop.py z-floor --hardware` measures the table height so
+the disabled safety floor can be restored to a real number.
+
+Blocking on the hardware side: `src/hardware/arm.py:VRTeleopArm` has two
+unimplemented methods. Point them at whatever the existing teleop stack uses
+to read joint state and command joint positions, and both tools work.
+
 ## Known open issues (carried over from teleop setup)
 
 - `wrist_flex` calibration is asymmetric (743–3157, resting near the top of

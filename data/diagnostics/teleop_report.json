@@ -1,0 +1,56 @@
+{
+  "latency_ms": 92.00000000043929,
+  "joints": [
+    {
+      "joint": "shoulder_pan",
+      "offset_deg": -0.0028118462793388327,
+      "scale_error_pct": -0.01789687026608755,
+      "lost_motion_deg": 0.021786197404991287,
+      "repeatability_deg": 0.008515979691493331,
+      "residual_deg": 0.014505395431954572
+    },
+    {
+      "joint": "shoulder_lift",
+      "offset_deg": 1.8028825654685328,
+      "scale_error_pct": -0.005740523195141289,
+      "lost_motion_deg": 0.019379659784539593,
+      "repeatability_deg": 0.013133222060585318,
+      "residual_deg": 0.014859400583786223
+    },
+    {
+      "joint": "elbow_flex",
+      "offset_deg": -0.004319148588516061,
+      "scale_error_pct": -0.05052778824863324,
+      "lost_motion_deg": 2.2079542803933068,
+      "repeatability_deg": 1.1003230613086108,
+      "residual_deg": 0.012613338012238025
+    },
+    {
+      "joint": "wrist_flex",
+      "offset_deg": -3.504096942422617,
+      "scale_error_pct": 13.970828639783871,
+      "lost_motion_deg": 0.01326296823081544,
+      "repeatability_deg": 0.012046698994195072,
+      "residual_deg": 0.014915052317432656
+    },
+    {
+      "joint": "wrist_roll",
+      "offset_deg": 0.0030902976889620893,
+      "scale_error_pct": -0.009928650954993401,
+      "lost_motion_deg": 0.0003439487610594356,
+      "repeatability_deg": 0.017167780922491497,
+      "residual_deg": 0.008795538442626111
+    },
+    {
+      "joint": "gripper",
+      "offset_deg": 0.00377719248063621,
+      "scale_error_pct": -18.026677621702948,
+      "lost_motion_deg": 0.005936158188890609,
+      "repeatability_deg": 0.016029649709813635,
+      "residual_deg": 0.010182901341174477
+    }
+  ],
+  "notes": [
+    "Joints outside tolerance: shoulder_lift (offset), elbow_flex (lost motion), wrist_flex (offset), gripper (scale)"
+  ]
+}
