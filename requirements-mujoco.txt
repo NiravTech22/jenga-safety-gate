@@ -1,0 +1,5 @@
+-r requirements-parallel.txt
+mujoco==3.14.0
+einops==0.8.2
+timm==1.0.30
+torchvision==0.26.0

@@ -1,5 +1,14 @@
 # jenga-safety-gate
 
+**Simulation training:** [MuJoCo + pretrained distilled V-JEPA setup](docs/MUJOCO_TRAINING.md)
+includes the viewer, training commands, evaluation artifacts and parallel CUDA demo.
+
+For the combined motion-aware perception and safety-gate runtime, CUDA setup,
+local student training, and human-turn action checks, see
+[`INTEGRATION.md`](INTEGRATION.md). The integrated runtime is dry-run only;
+trained checkpoints, calibrated risk thresholds, and physical validation are
+still required for autonomous Jenga.
+
 Structural anomaly detection as a safety gate for a learned manipulation policy,
 built on an SO-101 arm with VR teleoperation.
 
