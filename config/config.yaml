@@ -8,16 +8,14 @@ hardware:
   host_pc:
     has_gpu: true
     gpu_name: "NVIDIA GeForce RTX 3050"
-    gpu_vram_gb: 8.0
-    nvidia_driver: "595.84"
+    gpu_vram_gb: 4.0             # nvidia-smi verified 2026-10-03
+    nvidia_driver: "616.92"
     cpu: "AMD Ryzen 5 5600X"      # 6 cores / 12 threads
     ram_gb: 15.5
   # Step 6 Part A runs here, with two constraints that are decided now rather
   # than discovered at Step 6:
-  #   - Use the smallest published V-JEPA ViT checkpoint. 8 GB VRAM is enough
-  #     for ViT-S inference at modest batch sizes and nothing larger. The plan
-  #     already says start small; this makes it a hardware fact, not a
-  #     preference.
+  #   - Use the official distilled V-JEPA 2.1 ViT-B checkpoint. Fixed four-frame
+  #     CUDA inference was measured locally; see docs/MUJOCO_TRAINING.md.
   #   - Teacher embeddings are extracted offline in batches and cached to
   #     disk, so the 15.5 GB of system RAM never has to hold the dataset.
   # If either turns out to be wrong under measurement, switch this to "cloud"
@@ -94,7 +92,7 @@ policy:
   chunk_size: 100       # ACT action-chunk size, tune during Step 5
 
 anomaly_detector:
-  vjepa_checkpoint: "vjepa_vit_small"   # start small; domain is fixed-camera, single-object
+  vjepa_checkpoint: "checkpoints/pretrained/vjepa2_1_vitb_dist_vitG_384.pt"
   student_arch: "shallow_cnn"           # "shallow_cnn" | "mlp_on_features"
   checkpoint_dir: "./checkpoints/anomaly_detector"
   precision_recall_floor: 0.6           # must clear this on the 75-frame validation set

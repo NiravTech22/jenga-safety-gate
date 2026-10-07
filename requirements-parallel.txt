@@ -1,0 +1,3 @@
+-r requirements.txt
+# Install the CUDA-enabled PyTorch wheel separately; see INTEGRATION.md.
+torch>=2.2

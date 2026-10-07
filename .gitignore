@@ -25,3 +25,9 @@ venv/
 
 # Third-party robot assets (SO-ARM100 upstream, fetched not vendored)
 data/assets/
+data/mujoco_jenga/
+
+# Imported source build products stay local.
+vendor/motion_perception/*.exe
+vendor/motion_perception/*.exp
+vendor/motion_perception/*.lib

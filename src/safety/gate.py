@@ -17,6 +17,7 @@ without explicitly acknowledging that. See `SafetyGate.lock_threshold`.
 from __future__ import annotations
 
 import time
+import math
 from dataclasses import dataclass
 from typing import Optional
 
@@ -62,6 +63,8 @@ class SafetyGate:
         threshold: Optional[float] = None,
         fail_closed: bool = True,
     ):
+        if threshold is not None and not math.isfinite(threshold):
+            raise ValueError('Threshold must be finite')
         self.scorer = scorer
         self.invariant = InvariantLogger(invariant_log_path)
         self._threshold = threshold
@@ -82,6 +85,9 @@ class SafetyGate:
                 "comparison table can't accidentally mix two thresholds."
             )
         self._threshold = threshold
+        if not math.isfinite(threshold):
+            self._threshold = None
+            raise ValueError('Threshold must be finite')
         self._threshold_locked = True
 
     def evaluate(self, frame, action_ref: str) -> GateResult:
@@ -97,6 +103,8 @@ class SafetyGate:
 
         try:
             score = self.scorer.score(frame)
+            if not math.isfinite(score.value):
+                raise ValueError('Anomaly score must be finite')
             decision = GateDecision.BLOCK if score.value >= self._threshold else GateDecision.EXECUTE
             status = NodeStatus.BLOCKED if decision == GateDecision.BLOCK else NodeStatus.SUCCESS
             failure_reason = None
