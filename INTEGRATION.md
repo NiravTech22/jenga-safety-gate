@@ -1,5 +1,15 @@
 # Parallel SO-101 integration
 
+**2026-10-17 reconciliation:** [passive recording/replay](docs/RECORDING.md)
+now records overhead and arm-mounted wrist views independently. The external
+teleop read/sent-command hook remains to be connected; the recorder never uses
+the unimplemented motor adapter. Legacy side views keep their identity.
+The MuJoCo risk-head/AccelSight training implementation supersedes the older
+"no trained model" and teacher-extraction prerequisite statements below for
+that simulation recipe only. This checkout currently lacks the documented
+checkpoints and evaluation JSON; historical numbers are not newly verified.
+Generic masked-error teacher extraction remains a separate unfinished path.
+
 **Update:** the [MuJoCo training recipe](docs/MUJOCO_TRAINING.md) now uses an
 official pretrained distilled V-JEPA 2.1 checkpoint, simulated failure labels,
 and a trained AccelSight descriptor/velocity student. The original generic

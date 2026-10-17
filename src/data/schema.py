@@ -18,6 +18,12 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
+# V1 remains unchanged for existing consumers and historical side-camera data.
+# V2 is deliberately explicit; it cannot be loaded into a side-camera tuple.
+def load_recording(path):
+    from src.data.recording_v2 import load_episode
+    return load_episode(path)
+
 
 class ScenarioCategory(str, Enum):
     STABLE_EASY = "stable_easy"

@@ -150,6 +150,10 @@ class RealTimeClockMixin:
 class VRTeleopArm(RealTimeClockMixin):
     """Adapter seam for the existing VR teleop server.
 
+    Passive recording uses src.hardware.passive.TelemetryFile instead; its
+    external hook needs measured feedback AND the command actually sent. This
+    motor-capable diagnostics seam is not used by the recording command.
+
     Deliberately unimplemented. The server at vr_control.server_url is outside
     this repository and its API is not documented here, so guessing at it would
     produce code that looks finished and fails on contact. Fill in the two

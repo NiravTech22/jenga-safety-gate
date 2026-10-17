@@ -20,6 +20,9 @@ import time
 from pathlib import Path
 from typing import Optional
 
+# New passive overhead/wrist API. EpisodeRecorder below is the legacy V1 API.
+from src.data.recording_v2 import Recording as PassiveEpisodeRecorder
+
 from src.data.schema import Episode, EpisodeOutcome, ScenarioCategory, TimestepRecord
 from src.safety.invariant_schema import (
     InvariantEvent,

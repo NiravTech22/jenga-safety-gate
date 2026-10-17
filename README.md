@@ -1,5 +1,22 @@
 # jenga-safety-gate
 
+**Milestone 1 (2026-10-17):** passive overhead + **moving wrist** recording,
+per-camera host timestamps/sequences, integrity reports, real-teleop bridge,
+event annotations and dual-view replay are implemented. See
+[record/replay commands and acceptance criteria](docs/RECORDING.md).
+Software/synthetic validation is separate from pending disconnected-arm checks.
+The external teleop feedback/sent-command hook still needs connecting; hardware
+mode never substitutes synthetic joints. Existing side-camera data stays side.
+
+![Historical gate errors and new synthetic recording timing](docs/figures/milestone1-evidence.png)
+
+**Gate finding:** the documented MuJoCo test missed **2 of 17 failures** and
+blocked **3 of 31 stable towers**. The left plot reproduces historical documented
+counts, not a new evaluation (the evaluation JSON is absent in this checkout).
+The right plot is the new synthetic recording test. Neither validates physical
+hardware. The implemented model is a post-disturbance video risk gate; a learned
+SO-101 extraction policy and wrist-view risk validation remain pending.
+
 **Simulation training:** [MuJoCo + pretrained distilled V-JEPA setup](docs/MUJOCO_TRAINING.md)
 includes the viewer, training commands, evaluation artifacts and parallel CUDA demo.
 
@@ -68,9 +85,12 @@ Steps 1 and 2 are complete against the simulation backend: `20/20` on the
 known-configuration validation with `720/720` slots correct and 0.23° mean
 lean error. Both still need re-running on hardware.
 
-Still stubbed: the data campaign (Step 4), ACT policy training (Step 5),
-V-JEPA distillation (Step 6), and the gated run (Step 8). Each script says
-exactly what it is blocked on.
+Still pending: the physical data campaign, ACT extraction-policy training and
+physical gated runs. The newer MuJoCo path implements frozen pretrained distilled
+V-JEPA features, a supervised risk head and AccelSight descriptor/velocity
+training. Generic cached-score distillation is also implemented. These paths
+supersede older claims that all Step 6 training is stubbed; they do not establish
+masked-prediction uncertainty, wrist-camera generalization or autonomous control.
 
 ## Hardware assumptions (Step 0)
 

@@ -58,8 +58,17 @@ cameras:
     device_index: null
     resolution: [1280, 720]
     fps: 30
-    fixed: false            # set true only after physically locked down (Step 1)
+    fixed: true             # installed overhead mount; calibration still pending
+    identity: overhead
+  wrist:
+    identity: wrist
+    device_index: null      # supply actual device index; do not reuse side calibration
+    resolution: [1280, 720]
+    fps: 30
+    fixed: false
+    mount: arm             # moves with arm; extrinsics depend on joint configuration
   side:
+    # Legacy fixed-side simulation/reference tools only, never an alias for wrist.
     device_index: null
     resolution: [1280, 720]
     fps: 30
@@ -71,6 +80,10 @@ cameras:
 data:
   dataset_root: "./data/episodes"
   reference_photos_dir: "./data/reference_photos"
+  recording_schema_version: 2
+  # CLI timing limits are host receipt limits, not exposure synchronization.
+  max_frame_age_s: 0.2
+  max_camera_skew_s: 0.05
   scenario_categories:
     - stable_easy
     - stable_tight

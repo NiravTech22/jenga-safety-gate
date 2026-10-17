@@ -1,5 +1,13 @@
 # MuJoCo + pretrained distilled V-JEPA
 
+**Checkout audit, 2026-10-17:** the implementation below is present, but this
+checkout lacks `.venv`, the SO-101 URDF and documented evaluation/checkpoint
+artifacts. The measured results below are historical, not rerun in milestone 1.
+The new [recording path](RECORDING.md) uses overhead + a moving wrist camera;
+this recipe's fixed side camera is not wrist-equivalent. The README plot
+reproduces the historical 15 caught / 2 missed / 3 false alarms / 28 stable
+passes, highlighting failure cases without implying an extraction-policy test.
+
 This Windows host now has MuJoCo, the upstream SO-101 MJCF/meshes, Meta's
 official distilled V-JEPA 2.1 ViT-B checkpoint, and a runnable simulation
 training pipeline. All commands below run from the repository root.
