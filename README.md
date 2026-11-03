@@ -1,4 +1,11 @@
-# jenga-safety-gate
+# jenga-safety-gate:
+
+The Arm's Machine Learning Architecture is based on 3 main existing models:
+- YOLOv3 for detecting Jenga blocks and their approximate locations
+- V-JEPA 2.1 for learning representations of visual motion and tower dynamics
+- ACT for generating the Arm's actuation
+- Safety Gate: a custom trained policy that rejects actions that violate set safety constraints (calculated with a failure risk equation)
+- VLA for interpreting language instructions and visual observations from YOLOv3 and V-JEPA to generate robot actions.
 
 **Milestone 1 (2026-10-17):** passive overhead + **moving wrist** recording,
 per-camera host timestamps/sequences, integrity reports, real-teleop bridge,
