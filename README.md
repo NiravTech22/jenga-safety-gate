@@ -7,6 +7,11 @@ The Arm's Machine Learning Architecture is based on 3 main existing models:
 - Safety Gate: a custom trained policy that rejects actions that violate set safety constraints (calculated with a failure risk equation)
 - VLA for interpreting language instructions and visual observations from YOLOv3 and V-JEPA to generate robot actions.
 
+<img width="1900" height="933" alt="Screenshot from 2026-11-06 13-22-09" src="https://github.com/user-attachments/assets/04c7ce76-1f98-4965-86fe-9b12136dab09" />
+
+
+
+
 **Milestone 1 (2026-10-17):** passive overhead + **moving wrist** recording,
 per-camera host timestamps/sequences, integrity reports, real-teleop bridge,
 event annotations and dual-view replay are implemented. See
