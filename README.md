@@ -11,7 +11,7 @@ The Arm's Machine Learning Architecture is based on 3 main existing models:
 
 Updated Gripper for tasks requiring precise, fine-tuned motion:
 <img width="859" height="619" alt="Screenshot from 2026-11-10 12-39-47" src="https://github.com/user-attachments/assets/9c9c5b6c-948d-42b0-85a4-3f365f7ae21e" />
-
+updated gripper uses a servo to turn the central pinion gear, and two racks sit on opposite sides of it. When the gear turns, one rack moves one way, and the other moves the opposite way, so the fingers open and close symmetrically (prismatic joint)
 
 
 
