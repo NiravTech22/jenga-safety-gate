@@ -9,6 +9,12 @@ The Arm's Machine Learning Architecture is based on 3 main existing models:
 
 <img width="1900" height="933" alt="Screenshot from 2026-11-06 13-22-09" src="https://github.com/user-attachments/assets/04c7ce76-1f98-4965-86fe-9b12136dab09" />
 
+Updated Gripper for tasks requiring precise, fine-tuned motion:
+<img width="859" height="619" alt="Screenshot from 2026-11-10 12-39-47" src="https://github.com/user-attachments/assets/9c9c5b6c-948d-42b0-85a4-3f365f7ae21e" />
+
+
+
+
 In need of development:
 Safety-gate runtime, CUDA setup,
 local student training, and human-turn action checks  The integrated runtime is dry-run only;
