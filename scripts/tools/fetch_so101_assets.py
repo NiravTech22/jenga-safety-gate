@@ -74,7 +74,9 @@ def main() -> int:
     # The twin needs these too (its custom-claw meshes are committed, the rest are upstream).
     if TWIN_MODEL.exists():
         twin_meshes = set(re.findall(r'file="([^"]+\.stl)"', TWIN_MODEL.read_text()))
-        missing = {m for m in twin_meshes if not (TWIN_MESHES / m).exists() and not m.startswith("custom_claw_")}
+        upstream = {m for m in twin_meshes if not m.startswith("custom_claw_")}   # custom claw is committed
+        # --force refreshes every upstream twin mesh, not only the absent ones, so a new --ref takes effect.
+        missing = upstream if a.force else {m for m in upstream if not (TWIN_MESHES / m).exists()}
         meshes |= missing
     else:
         missing = set()
@@ -87,7 +89,7 @@ def main() -> int:
     (DEST / "PROVENANCE.json").write_text(json.dumps(
         {"upstream": UPSTREAM, "ref": ref, "subdir": SUBDIR, "license": "Apache-2.0",
          "files": TOP_FILES + [f"assets/{m}" for m in sorted(meshes)]}, indent=2) + "\n")
-    print(f"Done: {len(meshes)} meshes; {len(missing)} copied into {TWIN_MESHES.relative_to(REPO_ROOT)}")
+    print(f"Done: {len(meshes)} meshes; {len(missing)} copied/refreshed in {TWIN_MESHES.relative_to(REPO_ROOT)}")
     return 0
 
 

@@ -50,6 +50,7 @@ def write_cache(path, leak=False):
 
 
 def test_distillation_rejects_episode_leakage(tmp_path):
+    pytest.importorskip("torch")
     from src.runtime.distill import load_cache
     write_cache(tmp_path / "data.npz", leak=True)
     with pytest.raises(ValueError, match="leakage"):
@@ -57,6 +58,7 @@ def test_distillation_rejects_episode_leakage(tmp_path):
 
 
 def test_training_exports_loadable_local_student(tmp_path):
+    pytest.importorskip("torch")
     from src.runtime.distill import train
     from src.runtime.models import LocalStudent
     write_cache(tmp_path / "data.npz")

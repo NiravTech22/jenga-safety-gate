@@ -38,3 +38,9 @@ def test_camera_conventions_selftest():
     jv = _load("jenga_vision")
     import argparse, tempfile
     jv.cmd_selftest(argparse.Namespace(workdir=tempfile.mkdtemp()))
+
+
+def test_tower_yaw_average_handles_wraparound():
+    jv = _load("jenga_vision")
+    assert abs(abs(jv.circular_mean_deg([179.9] * 15 + [-179.9] * 15)) - 180) < 1e-6
+    assert abs(jv.circular_mean_deg([10, 11, 12]) - 11) < 1e-9

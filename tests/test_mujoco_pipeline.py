@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 mujoco = pytest.importorskip("mujoco")
+pytest.importorskip("torch")  # train_mujoco_risk needs it; absent in the twin-only install
 
 from src.sim.mujoco_jenga import JengaPhysics, ROBOT
 from src.runtime.train_mujoco_risk import metrics
