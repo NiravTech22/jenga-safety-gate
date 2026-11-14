@@ -18,6 +18,9 @@ RViz View:
 <img width="1201" height="845" alt="image" src="https://github.com/user-attachments/assets/3d709a69-571a-443d-9d4e-061f2bd83a38" />
 
 
+<img width="960" height="720" alt="run" src="https://github.com/user-attachments/assets/a1774427-0043-465f-98b0-6129e5930350" />
+
+
 In need of development:
 Safety-gate runtime, CUDA setup,
 local student training, and human-turn action checks  The integrated runtime is dry-run only;
