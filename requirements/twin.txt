@@ -1,0 +1,7 @@
+# SO-101 digital twin (twin/): MuJoCo pick-and-place + camera calibration.
+# Tested with mujoco 3.14.0 and 4.0.1, OpenCV 4.x/5.x.
+mujoco>=3.3
+numpy>=1.26
+opencv-contrib-python>=4.9   # cv2.aruco
+pillow>=10
+imageio[ffmpeg]>=2.31        # only for --record

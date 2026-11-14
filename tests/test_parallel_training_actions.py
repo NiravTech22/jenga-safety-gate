@@ -5,8 +5,8 @@ import numpy as np
 import pytest
 
 from src.hardware.kinematics import JOINT_NAMES
-from src.parallel.actions import ActionChecks, ActionProposal
-from src.parallel.runtime import Observation, Result
+from src.runtime.actions import ActionChecks, ActionProposal
+from src.runtime.runtime import Observation, Result
 
 
 def check_inputs():
@@ -50,15 +50,15 @@ def write_cache(path, leak=False):
 
 
 def test_distillation_rejects_episode_leakage(tmp_path):
-    from src.parallel.distill import load_cache
+    from src.runtime.distill import load_cache
     write_cache(tmp_path / "data.npz", leak=True)
     with pytest.raises(ValueError, match="leakage"):
         load_cache(tmp_path / "data.npz")
 
 
 def test_training_exports_loadable_local_student(tmp_path):
-    from src.parallel.distill import train
-    from src.parallel.models import LocalStudent
+    from src.runtime.distill import train
+    from src.runtime.models import LocalStudent
     write_cache(tmp_path / "data.npz")
     provenance = tmp_path / "teacher.json"
     provenance.write_text(json.dumps(dict(teacher_checkpoint="synthetic-test-only",

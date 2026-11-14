@@ -1,6 +1,6 @@
 """Forward kinematics for the SO-101, straight from its URDF.
 
-Extracted from scripts/render_urdf_preview.py, where the same chain walk was
+Extracted from scripts/tools/render_urdf_preview.py, where the same chain walk was
 already verified against the URDF by hand: at zero pose it puts the gripper at
 x = 0.399 m, which is the arm's stated reach.
 

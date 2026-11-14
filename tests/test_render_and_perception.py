@@ -2,7 +2,7 @@
 perception pipeline, and require the reconstruction to match.
 
 This is the Step 2 exit condition in miniature. The full 20-trial version
-lives in scripts/02_validate_tower_state.py; these run on every commit so a
+lives in scripts/pipeline/02_validate_tower_state.py; these run on every commit so a
 regression in either the renderer or the reader surfaces immediately.
 """
 import numpy as np
