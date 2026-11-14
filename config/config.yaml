@@ -27,7 +27,7 @@ hardware:
   # renderer plugin before user code runs. Unrelated to this pipeline, which
   # uses src/sim, but it rules the host out for Isaac-based work until the
   # IOMMU and driver-version questions are settled. See
-  # scripts/isaac/so101_jenga_scene.py for the elimination trail.
+  # scripts/archive/isaac/so101_jenga_scene.py for the elimination trail.
   isaac_sim_usable: false
 
 arm:

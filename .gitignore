@@ -31,3 +31,10 @@ data/mujoco_jenga/
 vendor/motion_perception/*.exe
 vendor/motion_perception/*.exp
 vendor/motion_perception/*.lib
+
+# SO-101 digital twin: only the custom-claw meshes are committed; upstream
+# meshes come from scripts/tools/fetch_so101_assets.py. Generated scenes too.
+twin/models/meshes/*
+!twin/models/meshes/custom_claw_*.stl
+twin/models/*.generated.xml
+twin/models/*.bak

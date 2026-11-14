@@ -4,7 +4,7 @@ import pytest
 mujoco = pytest.importorskip("mujoco")
 
 from src.sim.mujoco_jenga import JengaPhysics, ROBOT
-from src.parallel.train_mujoco_risk import metrics
+from src.runtime.train_mujoco_risk import metrics
 
 
 @pytest.mark.skipif(not ROBOT.exists(), reason="SO-101 simulation assets not installed")

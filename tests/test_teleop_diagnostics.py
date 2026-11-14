@@ -16,7 +16,11 @@ from src.hardware.diagnostics import (
     measure_repeatability,
     run_diagnostics,
 )
-from src.hardware.kinematics import JOINT_NAMES, ArmChain
+from src.hardware.kinematics import DEFAULT_URDF, JOINT_NAMES, ArmChain
+
+needs_urdf = pytest.mark.skipif(
+    not DEFAULT_URDF.exists(),
+    reason="SO-101 URDF not downloaded: python scripts/tools/fetch_so101_assets.py")
 
 
 def defects(**kw):
@@ -135,6 +139,7 @@ def test_vr_adapter_refuses_to_pretend():
 
 
 # -- kinematics -------------------------------------------------------------
+@needs_urdf
 def test_fk_matches_known_reach_at_zero_pose():
     chain = ArmChain()
     pos = chain.tool_position(np.zeros(6))
@@ -142,6 +147,7 @@ def test_fk_matches_known_reach_at_zero_pose():
     assert pos[2] == pytest.approx(0.2265, abs=1e-3)
 
 
+@needs_urdf
 def test_fk_moves_the_tool_when_a_joint_moves():
     chain = ArmChain()
     a = chain.tool_position(np.zeros(6))
@@ -149,6 +155,7 @@ def test_fk_moves_the_tool_when_a_joint_moves():
     assert np.linalg.norm(a - b) > 0.05
 
 
+@needs_urdf
 def test_urdf_limits_are_present_for_every_actuated_joint():
     limits = ArmChain().limits()
     for name in JOINT_NAMES:

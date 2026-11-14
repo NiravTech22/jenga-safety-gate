@@ -3,7 +3,7 @@
 Two reasons this exists.
 
 First, there is currently no seam between the VR teleop loop and the recorder,
-so scripts/03_record_episode.py can only dry-run. Anything satisfying
+so scripts/pipeline/03_record_episode.py can only dry-run. Anything satisfying
 ArmInterface can be recorded from.
 
 Second, and more useful right now: teleop that "feels inaccurate" can be

@@ -9,7 +9,7 @@ regression-checked before the physical rig exists.
 It substitutes for hardware at exactly one seam: frame capture. Everything
 downstream of capture — calibration, tower-state extraction, recording,
 training, the gate, the metrics — is the same code on both backends. Swapping
-to hardware means replacing `capture_sim()` in `scripts/01_capture_reference.py`
+to hardware means replacing `capture_sim()` in `scripts/pipeline/01_capture_reference.py`
 with `cv2.VideoCapture` reads and setting `runtime.backend: hardware`.
 
 ## What it is not

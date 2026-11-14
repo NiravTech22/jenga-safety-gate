@@ -3,7 +3,7 @@ import time
 
 import pytest
 
-from src.parallel.runtime import Observation, ParallelPipeline
+from src.runtime.runtime import Observation, ParallelPipeline
 from src.safety.anomaly_detector import AnomalyScore
 from src.safety.gate import SafetyGate
 

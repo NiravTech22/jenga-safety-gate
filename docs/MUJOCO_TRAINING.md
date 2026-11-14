@@ -1,5 +1,9 @@
 # MuJoCo + pretrained distilled V-JEPA
 
+Commands below are written for the original Windows host. On Linux use
+`.venv/bin/python`; `scripts/tools/train_mujoco.sh` is the Linux equivalent of
+`scripts/tools/train_mujoco.ps1`. Upstream SO-101 assets: `python scripts/tools/fetch_so101_assets.py`.
+
 **Checkout audit, 2026-10-17:** the implementation below is present, but this
 checkout lacks `.venv`, the SO-101 URDF and documented evaluation/checkpoint
 artifacts. The measured results below are historical, not rerun in milestone 1.
@@ -23,14 +27,14 @@ Open the interactive MuJoCo scene (close the viewer to stop):
 Replay held-out simulation clips through both trained CUDA branches:
 
 ```powershell
-.\.venv\Scripts\python.exe -m src.parallel.mujoco_demo --steps 12
+.\.venv\Scripts\python.exe -m src.runtime.mujoco_demo --steps 12
 ```
 
 An optional video reruns those same physics seeds, overlays each gate decision,
 and continues the simulation to show the counterfactual outcome:
 
 ```powershell
-.\.venv\Scripts\python.exe -m src.parallel.mujoco_demo --steps 12 --video logs/mujoco_demo.mp4
+.\.venv\Scripts\python.exe -m src.runtime.mujoco_demo --steps 12 --video logs/mujoco_demo.mp4
 ```
 
 Rebuild data, features, both trained components, and the parallel smoke run:
@@ -141,7 +145,7 @@ ArUco can calibrate real camera views later; it does not replace physics.
 ## Dependencies and upstream assets
 
 The verified environment uses PyTorch 2.11.0+cu128 and torchvision 0.26.0+cu128.
-Install matching CUDA wheels first, then `requirements-mujoco.txt`.
+Install matching CUDA wheels first, then `requirements/mujoco.txt`.
 The host GPU reports 4 GB VRAM, despite an older 8 GB entry in config.yaml.
 
 SO-101 assets under `data/assets/so101` are copied from

@@ -1,5 +1,27 @@
 # Progress tracker
 
+## Digital twin, calibration tool, repo reorganization — 2026-11-14
+
+- **SO-101 digital twin imported** into `twin/` ([DIGITAL_TWIN.md](DIGITAL_TWIN.md)).
+  Scripted physics pick-and-place with the custom claw: **PASS, 0.1 mm placement
+  error**, and 8/8 passes with the block's start pose perturbed (up to 4 mm,
+  5 degrees). Verified on MuJoCo 3.14.0 and 4.0.1. Simulation only.
+- **Camera calibration + tower pose tool** `twin/jenga_vision.py`
+  ([CAMERA_CALIBRATION.md](CAMERA_CALIBRATION.md)). Synthetic verification only:
+  intrinsics 0.25 px RMS, tower pose within 0.6 mm / 0.4 degrees, MuJoCo camera
+  within 0.13 px of the OpenCV projection. **Not yet run on the physical cameras.**
+- **Reorganized:** numbered scripts in `scripts/pipeline/`, utilities in
+  `scripts/tools/`, Isaac attempt in `scripts/archive/`, `src/parallel` renamed
+  `src/runtime`, empty `src/policy` removed, `INTEGRATION.md` moved to `docs/`,
+  requirements in `requirements/`. Upstream SO-101 assets now come from
+  `scripts/tools/fetch_so101_assets.py`; asset-dependent tests skip instead of
+  failing when they are absent. Test suite: **128 passed** with assets,
+  122 passed / 6 skipped without.
+- **Open hardware question:** the Step 0 row below records an RTX 3050 with
+  8 GB (2026-08-22); `config/config.yaml` and INTEGRATION.md record 4 GB
+  (nvidia-smi, 2026-10-03). Re-run `scripts/pipeline/00_check_hardware.py` on the
+  machine that will do Step 6 and correct `config.yaml`.
+
 ## Milestone 1 software evidence — 2026-10-17
 
 Implemented passive schema-v2 overhead/moving-wrist recording, independently
@@ -59,9 +81,9 @@ this file is the log.
 
 | Step | Status | Notes | Date |
 |---|---|---|---|
-| 0 — Hardware split | ✅ Done | RTX 3050 8 GB (CC 8.6), Ryzen 5 5600X, 15.5 GB RAM — measured, not assumed. Distillation stays on host_pc, constrained to the smallest V-JEPA ViT with embeddings cached to disk. `scripts/00_check_hardware.py` exits 0 | 2026-08-22 |
-| 1 — Camera rig | ✅ Done (sim) | `scripts/01_capture_reference.py`: 21 reference pairs, both cameras calibrated from the empty table, occupancy model fitted. Hardware capture still to do | 2026-08-21 |
-| 2 — Tower-state CV | ✅ Done (sim) | `scripts/02_validate_tower_state.py`: 20/20 trials, 720/720 slots, mean lean error 0.23° | 2026-08-21 |
+| 0 — Hardware split | ✅ Done | RTX 3050 8 GB (CC 8.6), Ryzen 5 5600X, 15.5 GB RAM — measured, not assumed. Distillation stays on host_pc, constrained to the smallest V-JEPA ViT with embeddings cached to disk. `scripts/pipeline/00_check_hardware.py` exits 0 | 2026-08-22 |
+| 1 — Camera rig | ✅ Done (sim) | `scripts/pipeline/01_capture_reference.py`: 21 reference pairs, both cameras calibrated from the empty table, occupancy model fitted. Hardware capture still to do | 2026-08-21 |
+| 2 — Tower-state CV | ✅ Done (sim) | `scripts/pipeline/02_validate_tower_state.py`: 20/20 trials, 720/720 slots, mean lean error 0.23° | 2026-08-21 |
 | 3 — Recording pipeline | 🟨 In progress | `src/data/recorder.py` works dry-run; needs wiring to the sim/hardware frame source | |
 | 4 — Data campaign | ⬜ Not started | 0 / 22 sessions | |
 | 5 — Baseline policy | ⬜ Not started | | |
@@ -85,12 +107,12 @@ Legend: ⬜ not started · 🟨 in progress · ✅ done · ❌ blocked (note why
 ## Teleop accuracy
 
 Before Step 4 collection begins, characterise the arm rather than adjusting
-it by feel: `python scripts/diagnose_teleop.py run --hardware`. The three
+it by feel: `python scripts/tools/diagnose_teleop.py run --hardware`. The three
 issues below are all things that report reads directly, and it distinguishes
 faults that feel identical in the headset but are fixed in different layers
 (a constant offset, a span error, lost motion, and command latency).
 
-`scripts/diagnose_teleop.py z-floor --hardware` measures the table height so
+`scripts/tools/diagnose_teleop.py z-floor --hardware` measures the table height so
 the disabled safety floor can be restored to a real number.
 
 Blocking on the hardware side: `src/hardware/arm.py:VRTeleopArm` has two
