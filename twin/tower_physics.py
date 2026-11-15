@@ -313,16 +313,22 @@ def test_removal(p=P, layer=3, seconds=4.0):
     return rows
 
 
+def _block_axis(layer):
+    """World axis a block lies along: even layers along x, odd layers along y."""
+    return 0 if layer % 2 == 0 else 1
+
+
 def _slides_at(p, layer, extra, force, seconds=1.5):
     """Hold a constant force on the middle block for 1.5 s; does it come out?"""
     t = Tower(p, thickness={(layer, 1): extra}); t.run(.6)
     k = t.names.index((layer, 1)); bid = t.ids[k]; dof = t.m.jnt_dofadr[t.m.body_jntadr[bid]]
-    x0 = t.d.xpos[bid, 0]
-    t.d.xfrc_applied[bid, 0] = force
+    ax = _block_axis(layer)                  # pull along the block's length
+    x0 = t.d.xpos[bid, ax]
+    t.d.xfrc_applied[bid, ax] = force
     t.run(seconds)
     # Pulled out = moved more than 10 mm. Creep (< 1 mm/s) and single stick-slip
     # jumps (~1 mm) both stay well under that.
-    return t.d.xpos[bid, 0] - x0 > .010
+    return t.d.xpos[bid, ax] - x0 > .010
 
 
 def _breakaway(p, layer, extra, hi, steps=7):
@@ -364,9 +370,10 @@ def test_creep(p=P, layer=8, frac=.5):
     loaded = predict_pull_n(p, layer)[0]
     t = Tower(p, thickness={(layer, 1): .0003}); t.run(.6)
     k = t.names.index((layer, 1)); bid = t.ids[k]
-    t.d.xfrc_applied[bid, 0] = frac * loaded
-    t.run(1.0); x1 = t.pos()[k, 0]; t.run(1.0)
-    rate = 1000 * (t.pos()[k, 0] - x1)
+    ax = _block_axis(layer)
+    t.d.xfrc_applied[bid, ax] = frac * loaded
+    t.run(1.0); x1 = t.pos()[k, ax]; t.run(1.0)
+    rate = 1000 * (t.pos()[k, ax] - x1)
     return dict(test=f"creep at {frac:.0%} of friction limit", predicted="0 mm/s (real wood)",
                 measured=f"{rate:.2f} mm/s (MuJoCo soft friction)", passed=rate < 1.0, value=rate)
 
