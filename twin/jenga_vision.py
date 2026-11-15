@@ -99,6 +99,12 @@ def average_poses(Ts):
     return T_from(R, t)
 
 
+def circular_mean_deg(angles_deg):
+    """Mean of angles that may straddle the -180/+180 wrap (179.9 and -179.9 -> 180, not 0)."""
+    a = np.radians(np.asarray(angles_deg, float))
+    return float(np.degrees(np.arctan2(np.sin(a).mean(), np.cos(a).mean())))
+
+
 def board_in_robot(origin_xyz, yaw_deg):
     """Board lying FACE UP. Board frame (OpenCV ChArUco): origin at the corner marked ORIGIN,
     +x along the edge marked '+X', +y across the board, +z into the table."""
@@ -344,7 +350,8 @@ def cmd_tower(a):
         else:
             line = "tower marker not visible"
         if a.once and len(hist) == 30:
-            out = {k: float(np.median([x[k] for x in hist])) for k in ("x", "y", "z", "yaw_deg", "edge_mm", "tilt_deg")}
+            out = {k: float(np.median([x[k] for x in hist])) for k in ("x", "y", "z", "edge_mm", "tilt_deg")}
+            out["yaw_deg"] = circular_mean_deg([x["yaw_deg"] for x in hist])   # a median breaks at +/-180
             print(json.dumps(out)); break
         if not a.once:
             print("\r" + line.ljust(110), end="", flush=True)
