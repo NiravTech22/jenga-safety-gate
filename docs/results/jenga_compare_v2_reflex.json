@@ -1,0 +1,892 @@
+{
+  "summary": {
+    "ungated": {
+      "episodes": 12,
+      "towers_fell": 12,
+      "stopped_safely": 0,
+      "blocks_removed": 10,
+      "completed": 0,
+      "out_of_attempts": 0
+    },
+    "gated": {
+      "episodes": 12,
+      "towers_fell": 4,
+      "stopped_safely": 0,
+      "blocks_removed": 16,
+      "completed": 0,
+      "out_of_attempts": 8
+    },
+    "gate": {
+      "decisions": 79,
+      "blocked_would_fall": 45,
+      "blocked_would_be_fine": 17,
+      "allowed_fell": 1,
+      "allowed_fine": 16
+    }
+  },
+  "threshold": 0.25,
+  "ess_min": 2.5,
+  "samples": 16,
+  "results": [
+    {
+      "seed": 201,
+      "gated": false,
+      "result": "fell",
+      "fell": true,
+      "blocks_removed": 2,
+      "decisions": [],
+      "log": "  L4S1: response 0.8 mm -> removed\n  L10S2: response 4.0 mm (reflex stop) -> removed\n  L8S1: response 4.7 mm (reflex stop) -> TOWER FELL\n"
+    },
+    {
+      "seed": 201,
+      "gated": true,
+      "result": "attempts used up",
+      "fell": false,
+      "blocks_removed": 1,
+      "decisions": [
+        {
+          "block": "L4S1",
+          "p_fall": 0.09194875505317214,
+          "ess": 7.108812419164104,
+          "allowed": true,
+          "reason": "ok",
+          "would_fall": false
+        },
+        {
+          "block": "L10S2",
+          "p_fall": 0.866824849083276,
+          "ess": 7.062493100972531,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": false
+        },
+        {
+          "block": "L8S1",
+          "p_fall": 0.7602464178474795,
+          "ess": 5.573697097122404,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L6S1",
+          "p_fall": 0.9999973679482721,
+          "ess": 7.092373763926247,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": false
+        },
+        {
+          "block": "L12S2",
+          "p_fall": 0.860630513789927,
+          "ess": 10.854556100643084,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L4S2",
+          "p_fall": 1.0,
+          "ess": 11.522364818847104,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L8S2",
+          "p_fall": 0.9834089574008802,
+          "ess": 10.187639695889688,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L6S2",
+          "p_fall": 0.9719170697139558,
+          "ess": 4.8854024063973815,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        }
+      ],
+      "log": "  L4S1: response 0.8 mm, P(fall)=0.09 ALLOWED -> removed\n  L10S2: test push moved the tower 2.9 mm (reflex stop at 1.7 mm) -> P(fall)=0.87 ESS=7.1 BLOCKED (predicted fall); counterfactual: would be fine\n  L8S1: test push moved the tower 3.8 mm (reflex stop at 2.5 mm) -> P(fall)=0.76 ESS=5.6 BLOCKED (predicted fall); counterfactual: would fall\n  L6S1: test push moved the tower 2.4 mm (reflex stop at 1.7 mm) -> P(fall)=1.00 ESS=7.1 BLOCKED (predicted fall); counterfactual: would be fine\n  L12S2: test push moved the tower 3.1 mm (reflex stop at 3.3 mm) -> P(fall)=0.86 ESS=10.9 BLOCKED (predicted fall); counterfactual: would fall\n  L4S2: test push moved the tower 2.8 mm (reflex stop at 1.2 mm) -> P(fall)=1.00 ESS=11.5 BLOCKED (predicted fall); counterfactual: would fall\n  L8S2: test push moved the tower 3.7 mm (reflex stop at 2.9 mm) -> P(fall)=0.98 ESS=10.2 BLOCKED (predicted fall); counterfactual: would fall\n  L6S2: test push moved the tower 3.4 mm (reflex stop at 0.7 mm) -> P(fall)=0.97 ESS=4.9 BLOCKED (predicted fall); counterfactual: would fall\n"
+    },
+    {
+      "seed": 202,
+      "gated": false,
+      "result": "fell",
+      "fell": true,
+      "blocks_removed": 0,
+      "decisions": [],
+      "log": "  L6S1: response 2.9 mm (reflex stop) -> TOWER FELL\n"
+    },
+    {
+      "seed": 202,
+      "gated": true,
+      "result": "attempts used up",
+      "fell": false,
+      "blocks_removed": 0,
+      "decisions": [
+        {
+          "block": "L6S1",
+          "p_fall": 0.9999209294024328,
+          "ess": 3.4858617298724544,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L8S1",
+          "p_fall": 0.8641050280513854,
+          "ess": 9.149453767354245,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L4S2",
+          "p_fall": 0.8210294757918272,
+          "ess": 7.6998557716917295,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L6S2",
+          "p_fall": 0.9946119104346002,
+          "ess": 7.791570384425866,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": false
+        },
+        {
+          "block": "L10S1",
+          "p_fall": 0.9999994321595268,
+          "ess": 5.955734096135856,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L8S2",
+          "p_fall": 0.9999982598994606,
+          "ess": 9.359322725043386,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L12S1",
+          "p_fall": 0.9999999879166368,
+          "ess": 9.109066303549351,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L4S1",
+          "p_fall": 0.7712336553368214,
+          "ess": 8.56844804345089,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": false
+        }
+      ],
+      "log": "  L6S1: test push moved the tower 2.9 mm (reflex stop at 2.5 mm) -> P(fall)=1.00 ESS=3.5 BLOCKED (predicted fall); counterfactual: would fall\n  L8S1: test push moved the tower 4.2 mm (reflex stop at 2.5 mm) -> P(fall)=0.86 ESS=9.1 BLOCKED (predicted fall); counterfactual: would fall\n  L4S2: test push moved the tower 3.6 mm (reflex stop at 1.2 mm) -> P(fall)=0.82 ESS=7.7 BLOCKED (predicted fall); counterfactual: would fall\n  L6S2: test push moved the tower 1.6 mm (reflex stop at 3.9 mm) -> P(fall)=0.99 ESS=7.8 BLOCKED (predicted fall); counterfactual: would be fine\n  L10S1: test push moved the tower 4.5 mm (reflex stop at 2.2 mm) -> P(fall)=1.00 ESS=6.0 BLOCKED (predicted fall); counterfactual: would fall\n  L8S2: test push moved the tower 4.7 mm (reflex stop at 2.9 mm) -> P(fall)=1.00 ESS=9.4 BLOCKED (predicted fall); counterfactual: would fall\n  L12S1: test push moved the tower 3.8 mm (reflex stop at 1.5 mm) -> P(fall)=1.00 ESS=9.1 BLOCKED (predicted fall); counterfactual: would fall\n  L4S1: test push moved the tower 1.3 mm (reflex stop at 4.1 mm) -> P(fall)=0.77 ESS=8.6 BLOCKED (predicted fall); counterfactual: would be fine\n"
+    },
+    {
+      "seed": 203,
+      "gated": false,
+      "result": "fell",
+      "fell": true,
+      "blocks_removed": 0,
+      "decisions": [],
+      "log": "  L12S1: response 4.5 mm (reflex stop) -> TOWER FELL\n"
+    },
+    {
+      "seed": 203,
+      "gated": true,
+      "result": "attempts used up",
+      "fell": false,
+      "blocks_removed": 1,
+      "decisions": [
+        {
+          "block": "L12S1",
+          "p_fall": 0.7008631769240038,
+          "ess": 8.896890351691317,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L10S1",
+          "p_fall": 0.7386517169516329,
+          "ess": 5.778443307496345,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L8S1",
+          "p_fall": 0.8769115933612146,
+          "ess": 5.781705596692761,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L4S2",
+          "p_fall": 0.0,
+          "ess": 5.172818110579505,
+          "allowed": true,
+          "reason": "ok",
+          "would_fall": false
+        },
+        {
+          "block": "L6S1",
+          "p_fall": 0.9012317655691248,
+          "ess": 6.635278364913579,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": false
+        },
+        {
+          "block": "L4S1",
+          "p_fall": 0.9999999999999984,
+          "ess": 14.792515273029087,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        }
+      ],
+      "log": "  L12S1: test push moved the tower 4.5 mm (reflex stop at 3.7 mm) -> P(fall)=0.70 ESS=8.9 BLOCKED (predicted fall); counterfactual: would fall\n  L10S1: test push moved the tower 3.8 mm (reflex stop at 1.7 mm) -> P(fall)=0.74 ESS=5.8 BLOCKED (predicted fall); counterfactual: would fall\n  L8S1: test push moved the tower 4.5 mm (reflex stop at 2.0 mm) -> P(fall)=0.88 ESS=5.8 BLOCKED (predicted fall); counterfactual: would fall\n  L4S2: response 1.2 mm (reflex stop), P(fall)=0.00 ALLOWED -> removed\n  L6S1: test push moved the tower 3.6 mm (reflex stop at 1.8 mm) -> P(fall)=0.90 ESS=6.6 BLOCKED (predicted fall); counterfactual: would be fine\n  L4S1: test push moved the tower 3.6 mm (reflex stop at 1.9 mm) -> P(fall)=1.00 ESS=14.8 BLOCKED (predicted fall); counterfactual: would fall\n"
+    },
+    {
+      "seed": 204,
+      "gated": false,
+      "result": "fell",
+      "fell": true,
+      "blocks_removed": 0,
+      "decisions": [],
+      "log": "  L8S1: response 4.3 mm (reflex stop) -> TOWER FELL\n"
+    },
+    {
+      "seed": 204,
+      "gated": true,
+      "result": "attempts used up",
+      "fell": false,
+      "blocks_removed": 2,
+      "decisions": [
+        {
+          "block": "L8S1",
+          "p_fall": 0.4672760555035928,
+          "ess": 7.830684492684267,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L4S2",
+          "p_fall": 0.8984308312072011,
+          "ess": 5.412385990887773,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L6S2",
+          "p_fall": 0.9478790343991113,
+          "ess": 8.593003052173767,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L8S2",
+          "p_fall": 0.0,
+          "ess": 6.603758532869995,
+          "allowed": true,
+          "reason": "ok",
+          "would_fall": false
+        },
+        {
+          "block": "L12S2",
+          "p_fall": 0.8870556092342027,
+          "ess": 5.163446755448478,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L10S2",
+          "p_fall": 0.0,
+          "ess": 6.94022349778571,
+          "allowed": true,
+          "reason": "ok",
+          "would_fall": false
+        }
+      ],
+      "log": "  L8S1: test push moved the tower 4.3 mm (reflex stop at 1.6 mm) -> P(fall)=0.47 ESS=7.8 BLOCKED (predicted fall); counterfactual: would fall\n  L4S2: test push moved the tower 2.6 mm (reflex stop at 2.8 mm) -> P(fall)=0.90 ESS=5.4 BLOCKED (predicted fall); counterfactual: would fall\n  L6S2: test push moved the tower 4.4 mm (reflex stop at 2.3 mm) -> P(fall)=0.95 ESS=8.6 BLOCKED (predicted fall); counterfactual: would fall\n  L8S2: response 1.7 mm, P(fall)=0.00 ALLOWED -> removed\n  L12S2: test push moved the tower 4.2 mm (reflex stop at 2.4 mm) -> P(fall)=0.89 ESS=5.2 BLOCKED (predicted fall); counterfactual: would fall\n  L10S2: response 2.0 mm, P(fall)=0.00 ALLOWED -> removed\n"
+    },
+    {
+      "seed": 205,
+      "gated": false,
+      "result": "fell",
+      "fell": true,
+      "blocks_removed": 0,
+      "decisions": [],
+      "log": "  L10S2: response 4.0 mm (reflex stop) -> TOWER FELL\n"
+    },
+    {
+      "seed": 205,
+      "gated": true,
+      "result": "fell (test push)",
+      "fell": true,
+      "blocks_removed": 3,
+      "decisions": [
+        {
+          "block": "L10S2",
+          "p_fall": 0.8815802267163905,
+          "ess": 8.159696274034227,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L8S2",
+          "p_fall": 0.2118063503872258,
+          "ess": 5.617169836232431,
+          "allowed": true,
+          "reason": "ok",
+          "would_fall": false
+        },
+        {
+          "block": "L12S1",
+          "p_fall": 0.9988042475946182,
+          "ess": 6.982621456914475,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L12S2",
+          "p_fall": 0.0,
+          "ess": 4.497261445309744,
+          "allowed": true,
+          "reason": "ok",
+          "would_fall": false
+        },
+        {
+          "block": "L6S2",
+          "p_fall": 0.0,
+          "ess": 6.45854380325396,
+          "allowed": true,
+          "reason": "ok",
+          "would_fall": false
+        },
+        {
+          "block": "L4S2",
+          "p_fall": 0.8291244872212921,
+          "ess": 11.539631958278669,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L4S1",
+          "p_fall": 0.8168766586337101,
+          "ess": 10.611125052385123,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L8S1",
+          "p_fall": 0.9997543174804033,
+          "ess": 12.841171823359195,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        }
+      ],
+      "log": "  L10S2: test push moved the tower 4.0 mm (reflex stop at 3.0 mm) -> P(fall)=0.88 ESS=8.2 BLOCKED (predicted fall); counterfactual: would fall\n  L8S2: response 1.6 mm, P(fall)=0.21 ALLOWED -> removed\n  L12S1: test push moved the tower 4.1 mm (reflex stop at 3.2 mm) -> P(fall)=1.00 ESS=7.0 BLOCKED (predicted fall); counterfactual: would fall\n  L12S2: response 3.3 mm (reflex stop), P(fall)=0.00 ALLOWED -> removed\n  L6S2: response 1.9 mm, P(fall)=0.00 ALLOWED -> removed\n  L4S2: test push moved the tower 3.9 mm (reflex stop at 2.0 mm) -> P(fall)=0.83 ESS=11.5 BLOCKED (predicted fall); counterfactual: would fall\n  L4S1: test push moved the tower 4.8 mm (reflex stop at 3.1 mm) -> P(fall)=0.82 ESS=10.6 BLOCKED (predicted fall); counterfactual: would fall\n  L8S1: test push moved the tower 4.1 mm (reflex stop at 2.6 mm) -> P(fall)=1.00 ESS=12.8 BLOCKED (predicted fall); counterfactual: would fall\n  L6S1: tower fell during the test push\n"
+    },
+    {
+      "seed": 206,
+      "gated": false,
+      "result": "fell",
+      "fell": true,
+      "blocks_removed": 0,
+      "decisions": [],
+      "log": "  L6S2: response 4.7 mm (reflex stop) -> TOWER FELL\n"
+    },
+    {
+      "seed": 206,
+      "gated": true,
+      "result": "fell (test push)",
+      "fell": true,
+      "blocks_removed": 1,
+      "decisions": [
+        {
+          "block": "L6S2",
+          "p_fall": 0.6854457029230854,
+          "ess": 4.664416289924569,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L10S2",
+          "p_fall": 0.0,
+          "ess": 5.4312528827674305,
+          "allowed": true,
+          "reason": "ok",
+          "would_fall": false
+        },
+        {
+          "block": "L10S1",
+          "p_fall": 1.0,
+          "ess": 15.929921855203714,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L4S1",
+          "p_fall": 0.3394070591324553,
+          "ess": 3.0753874540323602,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        }
+      ],
+      "log": "  L6S2: test push moved the tower 4.7 mm (reflex stop at 2.4 mm) -> P(fall)=0.69 ESS=4.7 BLOCKED (predicted fall); counterfactual: would fall\n  L10S2: response 1.9 mm, P(fall)=0.00 ALLOWED -> removed\n  L10S1: test push moved the tower 3.6 mm (reflex stop at 1.9 mm) -> P(fall)=1.00 ESS=15.9 BLOCKED (predicted fall); counterfactual: would fall\n  L4S1: test push moved the tower 1.3 mm -> P(fall)=0.34 ESS=3.1 BLOCKED (predicted fall); counterfactual: would fall\n  L8S1: tower fell during the test push\n"
+    },
+    {
+      "seed": 207,
+      "gated": false,
+      "result": "fell",
+      "fell": true,
+      "blocks_removed": 1,
+      "decisions": [],
+      "log": "  L12S1: response 1.4 mm -> removed\n  L4S1: response 3.1 mm (reflex stop) -> TOWER FELL\n"
+    },
+    {
+      "seed": 207,
+      "gated": true,
+      "result": "attempts used up",
+      "fell": false,
+      "blocks_removed": 2,
+      "decisions": [
+        {
+          "block": "L12S1",
+          "p_fall": 0.0,
+          "ess": 3.9443447596253898,
+          "allowed": true,
+          "reason": "ok",
+          "would_fall": false
+        },
+        {
+          "block": "L4S1",
+          "p_fall": 0.8053328130004271,
+          "ess": 11.521817748151657,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L4S2",
+          "p_fall": 0.0,
+          "ess": 5.784320635347021,
+          "allowed": true,
+          "reason": "ok",
+          "would_fall": false
+        },
+        {
+          "block": "L8S2",
+          "p_fall": 0.938922719269431,
+          "ess": 7.3274267845260574,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L10S2",
+          "p_fall": 0.9367884126500973,
+          "ess": 6.514618621537815,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L12S2",
+          "p_fall": 0.9976974311477647,
+          "ess": 11.13442066280663,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L6S2",
+          "p_fall": 0.8785195191762386,
+          "ess": 3.452702534846531,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": false
+        }
+      ],
+      "log": "  L12S1: response 1.4 mm, P(fall)=0.00 ALLOWED -> removed\n  L4S1: test push moved the tower 3.4 mm (reflex stop at 2.5 mm) -> P(fall)=0.81 ESS=11.5 BLOCKED (predicted fall); counterfactual: would fall\n  L4S2: response 2.0 mm, P(fall)=0.00 ALLOWED -> removed\n  L8S2: test push moved the tower 3.5 mm (reflex stop at 2.0 mm) -> P(fall)=0.94 ESS=7.3 BLOCKED (predicted fall); counterfactual: would fall\n  L10S2: test push moved the tower 3.1 mm (reflex stop at 2.0 mm) -> P(fall)=0.94 ESS=6.5 BLOCKED (predicted fall); counterfactual: would fall\n  L12S2: test push moved the tower 2.4 mm (reflex stop at 2.6 mm) -> P(fall)=1.00 ESS=11.1 BLOCKED (predicted fall); counterfactual: would fall\n  L6S2: test push moved the tower 2.1 mm (reflex stop at 2.0 mm) -> P(fall)=0.88 ESS=3.5 BLOCKED (predicted fall); counterfactual: would be fine\n"
+    },
+    {
+      "seed": 208,
+      "gated": false,
+      "result": "fell",
+      "fell": true,
+      "blocks_removed": 3,
+      "decisions": [],
+      "log": "  L12S2: response 1.5 mm -> removed\n  L10S1: response 1.0 mm -> removed\n  L4S1: response 2.7 mm (reflex stop) -> removed\n  L12S1: response 3.5 mm (reflex stop) -> TOWER FELL\n"
+    },
+    {
+      "seed": 208,
+      "gated": true,
+      "result": "attempts used up",
+      "fell": false,
+      "blocks_removed": 3,
+      "decisions": [
+        {
+          "block": "L12S2",
+          "p_fall": 0.0,
+          "ess": 6.644426384426954,
+          "allowed": true,
+          "reason": "ok",
+          "would_fall": false
+        },
+        {
+          "block": "L10S1",
+          "p_fall": 0.0,
+          "ess": 7.939932489975544,
+          "allowed": true,
+          "reason": "ok",
+          "would_fall": false
+        },
+        {
+          "block": "L4S1",
+          "p_fall": 0.0,
+          "ess": 8.09124346787362,
+          "allowed": true,
+          "reason": "ok",
+          "would_fall": false
+        },
+        {
+          "block": "L12S1",
+          "p_fall": 1.0,
+          "ess": 15.734833454330017,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L8S1",
+          "p_fall": 0.9999808396601098,
+          "ess": 4.883554343091394,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L6S1",
+          "p_fall": 0.8756389881699764,
+          "ess": 6.997726912488646,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        }
+      ],
+      "log": "  L12S2: response 1.5 mm, P(fall)=0.00 ALLOWED -> removed\n  L10S1: response 1.0 mm, P(fall)=0.00 ALLOWED -> removed\n  L4S1: response 2.5 mm (reflex stop), P(fall)=0.00 ALLOWED -> removed\n  L12S1: test push moved the tower 3.6 mm (reflex stop at 3.0 mm) -> P(fall)=1.00 ESS=15.7 BLOCKED (predicted fall); counterfactual: would fall\n  L8S1: test push moved the tower 4.8 mm (reflex stop at 4.0 mm) -> P(fall)=1.00 ESS=4.9 BLOCKED (predicted fall); counterfactual: would fall\n  L6S1: test push moved the tower 2.5 mm (reflex stop at 0.1 mm) -> P(fall)=0.88 ESS=7.0 BLOCKED (predicted fall); counterfactual: would fall\n"
+    },
+    {
+      "seed": 209,
+      "gated": false,
+      "result": "fell",
+      "fell": true,
+      "blocks_removed": 1,
+      "decisions": [],
+      "log": "  L10S1: response 3.2 mm (reflex stop) -> removed\n  L10S2: response 3.8 mm (reflex stop) -> TOWER FELL\n"
+    },
+    {
+      "seed": 209,
+      "gated": true,
+      "result": "attempts used up",
+      "fell": false,
+      "blocks_removed": 0,
+      "decisions": [
+        {
+          "block": "L10S1",
+          "p_fall": 0.9999926087019327,
+          "ess": 5.944649244102989,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": false
+        },
+        {
+          "block": "L10S2",
+          "p_fall": 0.9082522998232668,
+          "ess": 10.321716068234005,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": false
+        },
+        {
+          "block": "L8S2",
+          "p_fall": 0.9339755408548566,
+          "ess": 6.183465842969754,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L6S2",
+          "p_fall": 0.5477259314643066,
+          "ess": 11.828736110052892,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": false
+        },
+        {
+          "block": "L12S2",
+          "p_fall": 0.7032588279388174,
+          "ess": 10.062793845053497,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L4S2",
+          "p_fall": 0.4262895858846596,
+          "ess": 6.158085680622466,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        }
+      ],
+      "log": "  L10S1: test push moved the tower 3.2 mm (reflex stop at 2.7 mm) -> P(fall)=1.00 ESS=5.9 BLOCKED (predicted fall); counterfactual: would be fine\n  L10S2: test push moved the tower 3.1 mm (reflex stop at 3.2 mm) -> P(fall)=0.91 ESS=10.3 BLOCKED (predicted fall); counterfactual: would be fine\n  L8S2: test push moved the tower 2.3 mm (reflex stop at 1.5 mm) -> P(fall)=0.93 ESS=6.2 BLOCKED (predicted fall); counterfactual: would fall\n  L6S2: test push moved the tower 1.0 mm (reflex stop at 3.1 mm) -> P(fall)=0.55 ESS=11.8 BLOCKED (predicted fall); counterfactual: would be fine\n  L12S2: test push moved the tower 3.3 mm (reflex stop at 3.7 mm) -> P(fall)=0.70 ESS=10.1 BLOCKED (predicted fall); counterfactual: would fall\n  L4S2: test push moved the tower 3.0 mm (reflex stop at 1.0 mm) -> P(fall)=0.43 ESS=6.2 BLOCKED (predicted fall); counterfactual: would fall\n"
+    },
+    {
+      "seed": 210,
+      "gated": false,
+      "result": "fell",
+      "fell": true,
+      "blocks_removed": 0,
+      "decisions": [],
+      "log": "  L8S2: response 2.4 mm (reflex stop) -> TOWER FELL\n"
+    },
+    {
+      "seed": 210,
+      "gated": true,
+      "result": "attempts used up",
+      "fell": false,
+      "blocks_removed": 2,
+      "decisions": [
+        {
+          "block": "L8S2",
+          "p_fall": 0.8853476936738534,
+          "ess": 7.256239245756283,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L6S1",
+          "p_fall": 0.0,
+          "ess": 6.787245591590229,
+          "allowed": true,
+          "reason": "ok",
+          "would_fall": false
+        },
+        {
+          "block": "L4S1",
+          "p_fall": 0.54970479261994,
+          "ess": 5.939346270697475,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": false
+        },
+        {
+          "block": "L4S2",
+          "p_fall": 0.8593306490744967,
+          "ess": 7.043458771349205,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": false
+        },
+        {
+          "block": "L12S2",
+          "p_fall": 0.0,
+          "ess": 4.318114126124742,
+          "allowed": true,
+          "reason": "ok",
+          "would_fall": false
+        },
+        {
+          "block": "L10S2",
+          "p_fall": 0.7921619129959583,
+          "ess": 6.6448433860523615,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": false
+        },
+        {
+          "block": "L8S1",
+          "p_fall": 0.949663662600927,
+          "ess": 5.331584717788241,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L6S2",
+          "p_fall": 0.9999922712131935,
+          "ess": 11.901948882111759,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        }
+      ],
+      "log": "  L8S2: test push moved the tower 2.4 mm (reflex stop at 1.3 mm) -> P(fall)=0.89 ESS=7.3 BLOCKED (predicted fall); counterfactual: would fall\n  L6S1: response 1.5 mm, P(fall)=0.00 ALLOWED -> removed\n  L4S1: test push moved the tower 2.3 mm (reflex stop at 2.4 mm) -> P(fall)=0.55 ESS=5.9 BLOCKED (predicted fall); counterfactual: would be fine\n  L4S2: test push moved the tower 1.4 mm (reflex stop at 3.0 mm) -> P(fall)=0.86 ESS=7.0 BLOCKED (predicted fall); counterfactual: would be fine\n  L12S2: response 0.9 mm, P(fall)=0.00 ALLOWED -> removed\n  L10S2: test push moved the tower 3.1 mm (reflex stop at 4.5 mm) -> P(fall)=0.79 ESS=6.6 BLOCKED (predicted fall); counterfactual: would be fine\n  L8S1: test push moved the tower 3.6 mm (reflex stop at 2.6 mm) -> P(fall)=0.95 ESS=5.3 BLOCKED (predicted fall); counterfactual: would fall\n  L6S2: test push moved the tower 3.8 mm (reflex stop at 2.3 mm) -> P(fall)=1.00 ESS=11.9 BLOCKED (predicted fall); counterfactual: would fall\n"
+    },
+    {
+      "seed": 211,
+      "gated": false,
+      "result": "fell",
+      "fell": true,
+      "blocks_removed": 1,
+      "decisions": [],
+      "log": "  L4S2: response 1.9 mm (reflex stop) -> removed\n  L4S1: response 3.8 mm (reflex stop) -> TOWER FELL\n"
+    },
+    {
+      "seed": 211,
+      "gated": true,
+      "result": "fell (test push)",
+      "fell": true,
+      "blocks_removed": 0,
+      "decisions": [
+        {
+          "block": "L4S2",
+          "p_fall": 0.8903291985485535,
+          "ess": 9.796172542982593,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": false
+        },
+        {
+          "block": "L8S2",
+          "p_fall": 0.8722887690674154,
+          "ess": 7.277673549885544,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L4S1",
+          "p_fall": 0.7504682895197003,
+          "ess": 8.152995532940976,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L10S1",
+          "p_fall": 0.6380028918486895,
+          "ess": 6.776295130301816,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": false
+        },
+        {
+          "block": "L12S1",
+          "p_fall": 0.9824059405087676,
+          "ess": 3.102788909865353,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": false
+        },
+        {
+          "block": "L6S1",
+          "p_fall": 0.6326237265944411,
+          "ess": 4.280771445705827,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        }
+      ],
+      "log": "  L4S2: test push moved the tower 1.9 mm (reflex stop at 4.6 mm) -> P(fall)=0.89 ESS=9.8 BLOCKED (predicted fall); counterfactual: would be fine\n  L8S2: test push moved the tower 2.6 mm (reflex stop at 1.2 mm) -> P(fall)=0.87 ESS=7.3 BLOCKED (predicted fall); counterfactual: would fall\n  L4S1: test push moved the tower 3.1 mm (reflex stop at 2.7 mm) -> P(fall)=0.75 ESS=8.2 BLOCKED (predicted fall); counterfactual: would fall\n  L10S1: test push moved the tower 3.8 mm (reflex stop at 2.4 mm) -> P(fall)=0.64 ESS=6.8 BLOCKED (predicted fall); counterfactual: would be fine\n  L12S1: test push moved the tower 3.2 mm (reflex stop at 2.7 mm) -> P(fall)=0.98 ESS=3.1 BLOCKED (predicted fall); counterfactual: would be fine\n  L6S1: test push moved the tower 5.0 mm (reflex stop at 2.4 mm) -> P(fall)=0.63 ESS=4.3 BLOCKED (predicted fall); counterfactual: would fall\n  L8S1: tower fell during the test push\n"
+    },
+    {
+      "seed": 212,
+      "gated": false,
+      "result": "fell",
+      "fell": true,
+      "blocks_removed": 2,
+      "decisions": [],
+      "log": "  L6S2: response 0.9 mm -> removed\n  L4S2: response 2.4 mm (reflex stop) -> removed\n  L6S1: response 3.8 mm (reflex stop) -> TOWER FELL\n"
+    },
+    {
+      "seed": 212,
+      "gated": true,
+      "result": "fell",
+      "fell": true,
+      "blocks_removed": 1,
+      "decisions": [
+        {
+          "block": "L6S2",
+          "p_fall": 0.0,
+          "ess": 4.144101614342764,
+          "allowed": true,
+          "reason": "ok",
+          "would_fall": false
+        },
+        {
+          "block": "L4S2",
+          "p_fall": 0.0,
+          "ess": 1.9393932738124362,
+          "allowed": false,
+          "reason": "uncertain",
+          "would_fall": false
+        },
+        {
+          "block": "L6S1",
+          "p_fall": 1.0,
+          "ess": 15.805667559040728,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L10S1",
+          "p_fall": 0.714904728573479,
+          "ess": 7.045337515260398,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": false
+        },
+        {
+          "block": "L4S1",
+          "p_fall": 0.6234250402701729,
+          "ess": 7.3267651890442265,
+          "allowed": false,
+          "reason": "predicted fall",
+          "would_fall": true
+        },
+        {
+          "block": "L12S1",
+          "p_fall": 0.04647104144265675,
+          "ess": 4.686972732681494,
+          "allowed": true,
+          "reason": "ok",
+          "would_fall": true
+        }
+      ],
+      "log": "  L6S2: response 0.9 mm, P(fall)=0.00 ALLOWED -> removed\n  L4S2: test push moved the tower 2.3 mm (reflex stop at 12.1 mm) -> P(fall)=0.00 ESS=1.9 BLOCKED (uncertain); counterfactual: would be fine\n  L6S1: test push moved the tower 3.6 mm (reflex stop at 2.2 mm) -> P(fall)=1.00 ESS=15.8 BLOCKED (predicted fall); counterfactual: would fall\n  L10S1: test push moved the tower 3.6 mm (reflex stop at 2.7 mm) -> P(fall)=0.71 ESS=7.0 BLOCKED (predicted fall); counterfactual: would be fine\n  L4S1: test push moved the tower 4.4 mm (reflex stop at 2.2 mm) -> P(fall)=0.62 ESS=7.3 BLOCKED (predicted fall); counterfactual: would fall\n  L12S1: response 2.3 mm (reflex stop), P(fall)=0.05 ALLOWED -> TOWER FELL\n"
+    }
+  ]
+}

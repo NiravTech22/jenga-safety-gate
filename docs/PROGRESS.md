@@ -1,5 +1,21 @@
 # Progress tracker
 
+## Phase 2: gated Jenga extraction in the twin — 2026-11-14
+
+`twin/jenga_push.py` ([DIGITAL_TWIN.md](DIGITAL_TWIN.md#phase-2-gated-jenga-extraction-twinjenga_pushpy)).
+The custom-claw arm test-pushes blocks in a 15-layer MuJoCo tower with hidden
+block thickness and friction; a MuJoCo world model conditioned on the test push
+(depth reached + tower movement) estimates P(fall) and gates the pull.
+
+- 12 evaluation towers (201-212), thresholds locked on calibration towers 1-2:
+  **towers fallen 12/12 ungated vs 4/12 gated; blocks removed 10 vs 16.**
+  Per decision: 45/46 toppling pulls blocked; 17/33 safe pulls wrongly blocked.
+- First version without the push reflex failed (11/12 gated towers fell, from
+  accumulated test-push damage); kept as `docs/results/jenga_compare_v1_no_reflex.json`.
+- **Simulation only.** The pull is idealized (force on the block; the arm cannot
+  reach behind the tower) and gate and "truth" share a physics engine. This is a
+  pipeline result, not thesis evidence: see the limits in DIGITAL_TWIN.md.
+
 ## Digital twin, calibration tool, repo reorganization — 2026-11-14
 
 - **SO-101 digital twin imported** into `twin/` ([DIGITAL_TWIN.md](DIGITAL_TWIN.md)).
