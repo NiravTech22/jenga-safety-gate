@@ -231,12 +231,12 @@ def _com(t, mask=None):
     return (m[:, None] * pos).sum(0) / m.sum()
 
 
-def equilibrium_margin_mm(com, edge_y, edge_z, tilt_deg):
-    """Gravity tilted by theta toward +y. Signed distance (in the tilt plane) from the
-    line of action of the weight through `com` to the support edge at (edge_y, edge_z):
-    > 0 the weight acts inside the support (stands), < 0 outside (must tip)."""
+def equilibrium_margin_mm(com, edge_h, edge_z, tilt_deg, h=1):
+    """Gravity tilted by theta toward +y (h=1) or +x (h=0). Signed distance (in the
+    tilt plane) from the line of action of the weight through `com` to the support
+    edge at (edge_h, edge_z): > 0 inside the support (stands), < 0 outside (tips)."""
     a = math.radians(tilt_deg)
-    return 1000 * ((edge_y - com[1]) * math.cos(a) - (com[2] - edge_z) * math.sin(a))
+    return 1000 * ((edge_h - com[h]) * math.cos(a) - (com[2] - edge_z) * math.sin(a))
 
 
 def _tilt_until_collapse(t, axis="x", step=.25, hold=.25, start=0.0, stop=30.0, cb=None):
@@ -265,13 +265,14 @@ def _tilt_until_collapse(t, axis="x", step=.25, hold=.25, start=0.0, stop=30.0, 
     return float("nan"), 0.0
 
 
-def _onset_margin(t, mask, edge_y, edge_z, step):
+def _onset_margin(t, mask, edge_h, edge_z, step, h=1):
     """Equilibrium margin of the tower's own deformed shape at the last stable angle
     and one step later: the law predicts margin >= 0 then <= 0."""
     a, pos = t.last_stable
     m = t.m.body_mass[t.ids][mask]
     com = (m[:, None] * pos[mask]).sum(0) / m.sum()
-    return equilibrium_margin_mm(com, edge_y, edge_z, a), equilibrium_margin_mm(com, edge_y, edge_z, a + step)
+    return (equilibrium_margin_mm(com, edge_h, edge_z, a, h),
+            equilibrium_margin_mm(com, edge_h, edge_z, a + step, h))
 
 
 def test_tilt(p=P, cb=None, step=.25):
@@ -289,10 +290,13 @@ def test_tilt(p=P, cb=None, step=.25):
 def test_neck(p=P, neck_layer=2, cb=None, step=.1):
     t = Tower(p, removed={(neck_layer, 0), (neck_layer, 2)})
     rigid = predict_neck_deg(p, neck_layer)
-    onset, frac = _tilt_until_collapse(t, "x", step=step, start=max(0.0, rigid - 3), cb=cb)
+    # Tip across the neck block's 25 mm width: even layers lie along x (tilt toward +y),
+    # odd layers along y (tilt toward +x).
+    axis, h = ("x", 1) if neck_layer % 2 == 0 else ("y", 0)
+    onset, frac = _tilt_until_collapse(t, axis, step=step, start=max(0.0, rigid - 3), cb=cb)
     upper = np.array([l > neck_layer for l, _ in t.names])
     edge_z = (neck_layer + 1) * p.v("block_height")
-    m_ok, m_next = _onset_margin(t, upper, p.v("block_width") / 2, edge_z, step)
+    m_ok, m_next = _onset_margin(t, upper, p.v("block_width") / 2, edge_z, step, h)
     return dict(test="tilt on a one-block neck", predicted=f"tips when margin<=0; rigid {rigid:.1f} deg",
                 measured=f"tips at {onset:.2f} deg; margin {m_ok:+.1f}/{m_next:+.1f} mm; {frac:.0%} down",
                 passed=m_ok >= -2 and m_next <= 2 and frac > .3 and onset >= .8 * rigid, value=onset,
