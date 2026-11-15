@@ -1,5 +1,22 @@
 # Progress tracker
 
+## Tower physics validated against static equilibrium — 2026-11-15
+
+New `twin/tower_physics.py` ([TOWER_PHYSICS.md](TOWER_PHYSICS.md)): one
+parameter table, each value marked estimate/measured/tuned, and an 11-test
+validation suite against closed-form predictions. **All 11 pass**: the intact
+tower does not move; tilted towers tip within 1 mm of the equilibrium margin
+reaching zero (whole tower and one-block neck); removal patterns stand or
+collapse exactly as predicted; loose-block pull force matches μmg. Known
+limitations: soft-friction creep (0.28 mm/s at 50% load) and heavy-load
+breakaway at 80-90% of μN.
+
+**Direction change:** VR teleoperation is dropped; the robot is driven by
+scripts. The arm will ride an orbiting carriage (circular track, encoded
+steppers) around the tower, and blocks will be chosen by looseness reasoning
+from static equilibrium. The Phase 2 numbers below were produced with the older,
+softer physics and will be re-run on this model.
+
 ## Phase 2: gated Jenga extraction in the twin — 2026-11-14
 
 `twin/jenga_push.py` ([DIGITAL_TWIN.md](DIGITAL_TWIN.md#phase-2-gated-jenga-extraction-twinjenga_pushpy)).
