@@ -24,6 +24,7 @@ break, gate it, and honestly report whether gating helped.
 | Safety gate | Blocks actions on anomaly score with a locked threshold; fails closed | `src/safety/gate.py`, `src/runtime/` | Implemented, dry-run only |
 | Policy | ACT baseline (Step 5); the digital twin's scripted IK controller generates demonstrations | `scripts/pipeline/05_*`, `twin/` | Scripted controller works in sim; ACT pending data |
 | Digital twin | SO-101 + custom claw in MuJoCo, physics pick-and-place | `twin/` | Pick-and-place PASS in sim |
+| Gated extraction (sim) | Arm test-pushes Jenga blocks; a MuJoCo world model conditioned on the push gates the pull | `twin/jenga_push.py` | 12/12 towers fall ungated vs 4/12 gated (sim) |
 
 Tower state uses classical CV rather than an object detector on purpose: it gives
 ground truth that the policy and the anomaly detector can both be scored against.
@@ -78,6 +79,7 @@ python -m pytest tests -q
 
 python twin/so101_pickplace.py                 # watch the twin pick and place
 python twin/jenga_vision.py selftest           # check the calibration tool
+python twin/jenga_push.py                      # watch a gated Jenga game
 ```
 
 GPU work (V-JEPA features, risk head, motion student) needs a CUDA PyTorch wheel

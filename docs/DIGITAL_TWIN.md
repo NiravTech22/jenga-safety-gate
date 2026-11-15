@@ -59,3 +59,91 @@ hover height. Measured jaw gap: 84 mm open, 24 mm closed.
 
 Robustness check: the block's start pose was offset by up to 4 mm and rotated
 up to 5 degrees in eight variations; all eight passed.
+
+## Phase 2: gated Jenga extraction (`twin/jenga_push.py`)
+
+The twin pushes Jenga blocks with one fingertip, and a MuJoCo world model
+decides whether the extraction is safe before it is finished.
+
+```bash
+python twin/jenga_push.py                        # viewer: one gated game on tower 101
+python twin/jenga_push.py --ungated --seed 105   # same, no gate
+python twin/jenga_push.py --record push.mp4      # offscreen video
+python twin/jenga_push.py --compare --episodes 12   # gated vs ungated table (~1 h on 2 cores)
+```
+
+### Two worlds
+
+| | TRUTH ("real" tower) | MODEL (the gate) |
+|---|---|---|
+| Arm | Custom-claw SO-101, joint-space motion, servo limits | None: a kinematic fingertip |
+| Blocks | Hidden per-block thickness (±0.3 mm) and friction (0.3-0.7) | Nominal sizes; thickness and friction **sampled** from the same prior |
+| Block poses | Exact | What the camera would report: truth + 0.5 mm noise |
+
+### One turn
+
+1. **Test push with a reflex.** The arm puts one fingertip on the block's near
+   end and pushes up to 12 mm, stopping early if the camera sees any other
+   block move 3 mm (what a person does when a block feels tight). It records
+   how deep the push got and how much the tower moved.
+2. **Gate.** The world model replays the same reflex push on 16 sampled
+   towers, weights each by how well it reproduces the observed depth and tower
+   movement, and runs the pull on the ones that explain it. P(fall) is the weighted fraction that
+   topple. The gate **blocks** if P(fall) > 0.25, or if fewer than 2.5 samples
+   (effective sample size) explain the observation: the model does not
+   understand this tower, so it does not get a vote.
+3. **Pull.** If allowed, the block is pulled out from the far side.
+
+Thresholds were fixed on calibration towers 1-2 before any evaluation tower
+was run (with the reflex: 9/9 toppling pulls blocked, 5/11 safe pulls allowed). Every
+blocked pull also gets a counterfactual: the same pull on a copy of the truth
+state, so wrong blocks and correct blocks are both counted.
+
+### Why the push looks like this
+
+- **Only the fingertip goes in.** The claw's fingers are hooks: about 10 mm
+  tall at the tip, then rising into the layer above about 15 mm back. So the
+  push is a 12 mm test push, and fingertip collision boxes matching the real
+  tip replace the taller pick-and-place pads in this scene.
+- **Only even layers, two slots.** A 5-DOF arm can hold the claw horizontal
+  only along a line through the shoulder-pan axis. One fingertip sits on the
+  block's end while the other stays outside the tower, which fixes the tower at
+  y = -45 mm and makes the middle and inner slots of even layers reachable
+  (layers 4-12 of 15: below layer 4 the claw would hit the table).
+- **The pull is idealized.** The arm cannot reach behind the tower, so the
+  block is pulled out by a capped 3 N force on the block itself (a pinned block
+  still drags its neighbours, as a real pull would). On hardware this needs a
+  turntable or a second approach; it is the open item for Phase 3.
+
+### Results (simulation, 12 evaluation towers, seeds 201-212)
+
+| Metric | Ungated | Gated |
+|---|---|---|
+| Towers that fell | 12 / 12 | 4 / 12 |
+| ... of those, during a test push | 0 | 3 |
+| Games ended safely (no block judged safe / 10 attempts used) | n/a | 8 |
+| Blocks removed (total) | 10 | 16 |
+
+Per decision (79): of 46 pulls that would have toppled the tower, the gate
+blocked 45; of 33 safe pulls, it wrongly blocked 17. It is cautious by design:
+a block it cannot explain counts as unsafe. Raw results:
+`docs/results/jenga_compare_v2_reflex.json` (regenerate with `--compare --seed0 201`).
+
+**A first version failed, and the fix was not tuned on these towers.** Without
+the reflex (towers 101-112, `docs/results/jenga_compare_v1_no_reflex.json`) the
+gate blocked 32 of 34 toppling pulls, yet 11/12 gated towers still fell:
+every full 12 mm test push on a tight block shifted the upper tower about
+10 mm, and those shifts added up until a test push brought it down. The reflex
+was added, re-checked only on calibration towers 1-2, and then evaluated on the
+fresh towers 201-212 above.
+
+The simulated tower is harsh: about half of all first pulls topple it, which is
+why every ungated game ends in a fall. Remaining failures are mostly test
+pushes, so the next safety step is a gate on the test push itself.
+
+### What it does not show
+
+Both worlds are simulations from the same physics engine, so the gate's model
+is better matched to its "reality" than it will be to wood. The numbers below
+show that the observation-conditioned gate works as designed in simulation,
+not that it will on the physical tower.
