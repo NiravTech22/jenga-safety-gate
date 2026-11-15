@@ -48,7 +48,7 @@ REPO = Path(__file__).resolve().parents[1]
 DEFAULT_OUT = REPO / "data/tower_runs"
 SCENARIOS = ("removal", "pull", "poke", "tilt", "shake", "game")
 # Per-scenario definition version: `generate` redoes stored runs whose version is out of date.
-VERSIONS = dict(removal="1", pull="1", poke="2", tilt="1", shake="1", game="1")
+VERSIONS = dict(removal="1", pull="1", poke="3", tilt="1", shake="1", game="1")
 FINGER = ('<body name="finger" mocap="true" pos="3 3 -1"><geom name="finger_geom" type="sphere" '
           'size=".006" friction=".5 .005 .0001" condim="3" rgba=".9 .3 .2 1"/></body>')
 FRAME_EVERY_S = .04                # trajectory sample period (25 Hz)
@@ -235,11 +235,13 @@ class Run:
         d, m = self.tower.d, self.tower.m
         target = d.xpos[self.tower.ids[self.tower.names.index((layer, slot))]].copy()
         u = np.array([math.cos(ang), math.sin(ang), 0.0])
-        half = (3 * self.p.v("block_width") + 2 * self.p.v("side_gap")) / 2
-        # start outside the tower on the far side of the heading, travel to `depth` past the face
-        face = target[:2] @ u[:2] - half / max(abs(u[0]), abs(u[1]))
-        start = target - u * (target[:2] @ u[:2] - face + .02)
-        travel = .02 + depth
+        half = (3 * self.p.v("block_width") + 2 * self.p.v("side_gap")) / 2 + .001
+        # Where the approach ray (through the target block, along u) enters the tower's
+        # square footprint (slab method), then back off so the 6 mm finger starts clear.
+        t_enter = max((-half * math.copysign(1, u[i]) - target[i]) / u[i] for i in (0, 1) if abs(u[i]) > 1e-9)
+        clear = .02 + .006
+        start = target + u * (t_enter - clear)
+        travel = clear + depth
         mid = m.body("finger").mocapid[0]
         n_in = max(1, round(travel / speed / m.opt.timestep))
         for k in range(n_in + 1):
@@ -450,11 +452,14 @@ def replay(run_id, out=DEFAULT_OUT, speed=1.0):
     """Re-simulate run `run_id` (deterministic from its id) in the MuJoCo viewer."""
     import mujoco.viewer
     db = connect(out)
-    row = db.execute("SELECT seed, scenario FROM runs WHERE id=?", (run_id,)).fetchone()
-    base_seed = 0
-    if row and row[0] != run_id:
-        base_seed = (row[0] - run_id) // 1_000_003
-    r = Run(run_id, base_seed)
+    row = db.execute("SELECT seed, scenario, timestep FROM runs WHERE id=?", (run_id,)).fetchone()
+    base_seed, dt = 0, None
+    if row:
+        if row[0] != run_id:
+            base_seed = (row[0] - run_id) // 1_000_003
+        if row[2] and abs(row[2] - .002) > 1e-9:
+            dt = row[2]                          # replay a retried run with the step it was stored with
+    r = Run(run_id, base_seed, dt)
     print(f"run {run_id}: {r.scenario}, {int(r.p.v('layers'))} layers, friction {r.p.v('friction'):.2f}")
     with mujoco.viewer.launch_passive(r.tower.m, r.tower.d) as v:
         v.cam.lookat[:] = [0, 0, .12]; v.cam.distance, v.cam.azimuth, v.cam.elevation = .8, 55, -15
