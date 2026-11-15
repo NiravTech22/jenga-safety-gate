@@ -133,9 +133,9 @@ def tower_xml(p=P, removed=(), thickness=None, gravity=(0, 0, -9.81), extra=""):
 
 
 class Tower:
-    def __init__(self, p=P, removed=(), thickness=None, gravity=(0, 0, -9.81)):
+    def __init__(self, p=P, removed=(), thickness=None, gravity=(0, 0, -9.81), extra=""):
         self.p = p
-        self.m = mujoco.MjModel.from_xml_string(tower_xml(p, removed, thickness, gravity))
+        self.m = mujoco.MjModel.from_xml_string(tower_xml(p, removed, thickness, gravity, extra))
         self.d = mujoco.MjData(self.m)
         self.names = [(l, s) for l in range(int(p.v("layers"))) for s in range(3) if (l, s) not in removed]
         self.ids = np.array([self.m.body(f"block_{l}_{s}").id for l, s in self.names])

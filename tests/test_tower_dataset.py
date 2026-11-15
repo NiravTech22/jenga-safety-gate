@@ -30,9 +30,16 @@ def test_predictor_matches_sim_for_identical_blocks():
 
 def test_runs_are_deterministic_and_stored(tmp_path):
     a = td._job((3, 0, None)); b = td._job((3, 0, None))      # run 3 is a "tilt" run
+    assert a["unstable"] == 0 and a["timestep"] == .002
     assert a["scenario"] == "tilt" and a["outcome"] == b["outcome"] and a["onset_s"] == b["onset_s"]
     db = td.connect(tmp_path)
     cols = [c[1] for c in db.execute("PRAGMA table_info(runs)")]
     db.execute(f"INSERT INTO runs ({','.join(cols)}) VALUES ({','.join('?' * len(cols))})", [a.get(c) for c in cols])
     db.commit()
     assert sqlite3.connect(tmp_path / "runs.sqlite").execute("SELECT scenario FROM runs").fetchone()[0] == "tilt"
+
+
+def test_poke_is_a_finger_and_stays_stable():
+    rec = td._job((2, 0, None))                                    # run 2 is a "poke" run
+    assert rec["scenario"] == "poke" and rec["version"] == td.VERSIONS["poke"]
+    assert rec["unstable"] == 0 and rec["max_top_disp_mm"] < 200

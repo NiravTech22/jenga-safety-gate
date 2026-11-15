@@ -21,6 +21,7 @@ Usage (from the repository root)
   python twin/tower_dataset.py show 17                            # one run's record
   python twin/tower_dataset.py replay 17                          # watch a stored run in MuJoCo
   python twin/tower_dataset.py export runs.csv                    # flat CSV of every run
+  python twin/tower_dataset.py check [--fix]                      # find (and redo) numerically unstable runs
 
 Output: data/tower_runs/runs.sqlite and data/tower_runs/traj/run_XXXXXX.npz
 (positions and orientations of every block at 25 Hz).
@@ -46,7 +47,10 @@ import tower_physics as TP  # noqa: E402
 REPO = Path(__file__).resolve().parents[1]
 DEFAULT_OUT = REPO / "data/tower_runs"
 SCENARIOS = ("removal", "pull", "poke", "tilt", "shake", "game")
-VERSION = "1"                      # bump if scenario definitions change
+# Per-scenario definition version: `generate` redoes stored runs whose version is out of date.
+VERSIONS = dict(removal="1", pull="1", poke="2", tilt="1", shake="1", game="1")
+FINGER = ('<body name="finger" mocap="true" pos="3 3 -1"><geom name="finger_geom" type="sphere" '
+          'size=".006" friction=".5 .005 .0001" condim="3" rgba=".9 .3 .2 1"/></body>')
 FRAME_EVERY_S = .04                # trajectory sample period (25 Hz)
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
@@ -58,6 +62,7 @@ CREATE TABLE IF NOT EXISTS runs (
     collapsed INTEGER, onset_s REAL, fraction_down REAL, max_top_disp_mm REAL,
     predicted_stable INTEGER, min_margin_mm REAL,
     blocks_removed INTEGER, sim_seconds REAL, wall_seconds REAL,
+    timestep REAL, unstable INTEGER,
     traj_file TEXT, created TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_scenario ON runs(scenario);
@@ -122,7 +127,7 @@ def equilibrium(p, removed):
 
 # ------------------------------------------------------------------ one run
 class Run:
-    def __init__(self, run_id, base_seed=0):
+    def __init__(self, run_id, base_seed=0, timestep=None):
         self.id = run_id
         self.seed = base_seed * 1_000_003 + run_id
         rng = np.random.default_rng(self.seed)
@@ -133,10 +138,13 @@ class Run:
         p.friction.value = float(rng.uniform(.25, .50))
         p.block_mass.value = float(rng.uniform(.009, .012))
         self.tol = float(rng.choice([0.0, .0001, .0002, .0003]))
+        if timestep:
+            p.timestep.value = timestep
+            p.contact_timeconst.value = max(p.contact_timeconst.value * timestep / .002, 2 * timestep)
         self.p = p
         L = p.layers.value
         thick = {(l, s): float(rng.uniform(-self.tol, self.tol)) for l in range(L) for s in range(3)} if self.tol else None
-        self.tower = TP.Tower(p, thickness=thick)
+        self.tower = TP.Tower(p, thickness=thick, extra=FINGER)
         m = self.tower.m
         self.qadr = np.array([m.jnt_qposadr[m.body_jntadr[b]] for b in self.tower.ids])
         self.dadr = np.array([m.jnt_dofadr[m.body_jntadr[b]] for b in self.tower.ids])
@@ -165,6 +173,10 @@ class Run:
 
     def run(self, seconds):
         self.tower.run(seconds, self._cb)
+
+    def unstable(self):
+        """MuJoCo hit NaN/Inf acceleration and reset the state: the run is not valid."""
+        return self.tower.d.warning[mujoco.mjtWarning.mjWARN_BADQACC].number > 0
 
     def remove(self, name):
         """Perfect extraction: the block leaves the tower instantly. The static
@@ -212,16 +224,31 @@ class Run:
         self.run(1.5)
 
     def poke(self):
+        """A fingertip (12 mm sphere) moves horizontally into the tower at hand speed,
+        then pulls back. Displacement-driven, like a real poke."""
         L = int(self.p.v("layers"))
         layer = int(self.rng.integers(L // 2, L)); slot = int(self.rng.integers(3))
-        f = float(self.rng.uniform(.5, 8.0)); dur = float(self.rng.uniform(.03, .3))
+        speed = float(self.rng.uniform(.02, .40)); depth = float(self.rng.uniform(.005, .040))
         ang = float(self.rng.uniform(0, 2 * math.pi))
-        self.params = dict(block=(layer, slot), force_n=f, duration_s=dur, heading_deg=math.degrees(ang))
+        self.params = dict(block=(layer, slot), speed_ms=speed, depth_m=depth, heading_deg=math.degrees(ang))
         self.run(.5)
-        bid = self.tower.ids[self.tower.names.index((layer, slot))]
-        self.tower.d.xfrc_applied[bid, :2] = f * np.array([math.cos(ang), math.sin(ang)])
-        self.run(dur)
-        self.tower.d.xfrc_applied[bid] = 0
+        d, m = self.tower.d, self.tower.m
+        target = d.xpos[self.tower.ids[self.tower.names.index((layer, slot))]].copy()
+        u = np.array([math.cos(ang), math.sin(ang), 0.0])
+        half = (3 * self.p.v("block_width") + 2 * self.p.v("side_gap")) / 2
+        # start outside the tower on the far side of the heading, travel to `depth` past the face
+        face = target[:2] @ u[:2] - half / max(abs(u[0]), abs(u[1]))
+        start = target - u * (target[:2] @ u[:2] - face + .02)
+        travel = .02 + depth
+        mid = m.body("finger").mocapid[0]
+        n_in = max(1, round(travel / speed / m.opt.timestep))
+        for k in range(n_in + 1):
+            d.mocap_pos[mid] = start + u * travel * k / n_in
+            self.tower.run(m.opt.timestep, self._cb)
+        for k in range(n_in, -1, -1):
+            d.mocap_pos[mid] = start + u * travel * k / n_in
+            self.tower.run(m.opt.timestep, self._cb)
+        d.mocap_pos[mid] = [3, 3, -1]
         self.run(2.5)
 
     def tilt(self):
@@ -274,7 +301,7 @@ class Run:
         if self.removed:
             self.params["removed"] = [list(b) for b in self.removed]
         pred, margin = self.worst if (self.scenario in ("removal", "game") and self.worst) else (None, None)
-        return dict(id=self.id, seed=self.seed, scenario=self.scenario, version=VERSION,
+        return dict(id=self.id, seed=self.seed, scenario=self.scenario, version=VERSIONS[self.scenario],
                     layers=int(self.p.v("layers")), friction=self.p.v("friction"),
                     block_mass_g=1000 * self.p.v("block_mass"), thickness_tol_mm=1000 * self.tol,
                     scenario_params=json.dumps(self.params, default=list),
@@ -283,14 +310,18 @@ class Run:
                     max_top_disp_mm=1000 * float(disp),
                     predicted_stable=None if pred is None else int(pred), min_margin_mm=margin,
                     blocks_removed=len(self.removed), sim_seconds=float(self.tower.d.time),
+                    timestep=float(self.tower.m.opt.timestep), unstable=int(self.unstable()),
                     wall_seconds=time.time() - t0)
 
 
 
 def _job(args):
     run_id, base_seed, traj_dir = args
-    r = Run(run_id, base_seed)
-    rec = r.execute()
+    for dt in (None, .001, .0005):           # numerical blow-up: redo with a smaller time step
+        r = Run(run_id, base_seed, dt)
+        rec = r.execute()
+        if not rec["unstable"]:
+            break
     if traj_dir is not None:
         f = Path(traj_dir) / f"run_{run_id:06d}.npz"
         np.savez_compressed(f, t=np.array(r.times, np.float32), pos=np.stack(r.frames), quat=np.stack(r.quats),
@@ -306,18 +337,58 @@ def connect(out):
     out = Path(out); out.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(out / "runs.sqlite")
     db.executescript(SCHEMA)
+    have = {c[1] for c in db.execute("PRAGMA table_info(runs)")}
+    for col, typ in (("timestep", "REAL"), ("unstable", "INTEGER")):   # databases made before these existed
+        if col not in have:
+            db.execute(f"ALTER TABLE runs ADD COLUMN {col} {typ}")
+    db.commit()
     return db
+
+
+def check(out=DEFAULT_OUT, fix=False):
+    """Find runs where MuJoCo silently reset the simulation (databases made before
+    the automatic retry): a reset shows up in the trajectory as blocks jumping back
+    to their start positions, or as NaN. --fix deletes them so `generate` redoes them."""
+    db = connect(out)
+    bad = []
+    for rid, traj, unstable in db.execute("SELECT id, traj_file, unstable FROM runs ORDER BY id").fetchall():
+        if unstable:
+            bad.append((rid, "flagged unstable")); continue
+        if not traj:
+            continue
+        f = REPO / traj if not Path(traj).is_absolute() else Path(traj)
+        if not f.exists():
+            continue
+        pos = np.load(f)["pos"].astype(float)
+        if not np.isfinite(pos).all():
+            bad.append((rid, "NaN in trajectory")); continue
+        # A MuJoCo reset puts every block back exactly where the run started.
+        # Signature: in one frame, blocks that had moved > 3 cm are back within 0.5 mm of frame 0.
+        away = np.linalg.norm(pos - pos[0], axis=2)                # (frames, blocks)
+        snapped = (away[:-1] > .03) & (away[1:] < .0005)
+        if np.any(snapped.sum(axis=1) >= 2):
+            bad.append((rid, "simulation reset (blocks snapped back to their start)"))
+    if not bad:
+        print("No unstable runs found.")
+        return
+    for rid, why in bad:
+        print(f"  run {rid}: {why}")
+    if fix:
+        db.executemany("DELETE FROM runs WHERE id=?", [(r,) for r, _ in bad]); db.commit()
+        print(f"Deleted {len(bad)} runs. Run `generate` with the same --runs to redo them (with a smaller time step if needed).")
+    else:
+        print(f"{len(bad)} suspect runs. Add --fix to delete them, then re-run `generate`.")
 
 
 def generate(n_runs, workers, out=DEFAULT_OUT, start=0, base_seed=0, keep_traj=True):
     import multiprocessing as mp
     db = connect(out)
-    have = {r[0] for r in db.execute("SELECT id FROM runs")}
+    have = {rid for rid, sc, v in db.execute("SELECT id, scenario, version FROM runs") if VERSIONS.get(sc) == v}
     todo = [i for i in range(start, start + n_runs) if i not in have]
     traj_dir = None
     if keep_traj:
         traj_dir = Path(out) / "traj"; traj_dir.mkdir(parents=True, exist_ok=True)
-    print(f"{len(todo)} new runs ({n_runs - len(todo)} already in the database), {workers} workers")
+    print(f"{len(todo)} runs to do ({n_runs - len(todo)} already up to date in the database), {workers} workers")
     cols = [c[1] for c in db.execute("PRAGMA table_info(runs)")]
     t0, done = time.time(), 0
     with mp.get_context("spawn").Pool(workers) as pool:
@@ -335,6 +406,9 @@ def summary(out=DEFAULT_OUT):
     db = connect(out)
     total = db.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
     print(f"\n{total} runs in {Path(out) / 'runs.sqlite'}\n")
+    n_bad = db.execute("SELECT COUNT(*) FROM runs WHERE unstable=1").fetchone()[0]
+    if n_bad:
+        print(f"({n_bad} runs flagged numerically unstable are included below; run `check --fix` to redo them)\n")
     print(f"{'scenario':10s} {'runs':>5s} {'stood':>6s} {'partial':>8s} {'collapsed':>10s} {'mean onset s':>13s}")
     for sc, n, st, pa, co, onset in db.execute(
             "SELECT scenario, COUNT(*), SUM(outcome='stood'), SUM(outcome='partial'), SUM(outcome='collapsed'), "
@@ -416,6 +490,7 @@ def main():
     s = sp.add_parser("show"); s.add_argument("run_id", type=int)
     r = sp.add_parser("replay"); r.add_argument("run_id", type=int); r.add_argument("--speed", type=float, default=1.0)
     e = sp.add_parser("export"); e.add_argument("path")
+    c = sp.add_parser("check"); c.add_argument("--fix", action="store_true")
     a = ap.parse_args()
     if a.cmd == "generate":
         generate(a.runs, a.workers, a.out, a.start, keep_traj=not a.no_traj)
@@ -427,6 +502,8 @@ def main():
         replay(a.run_id, a.out, a.speed)
     elif a.cmd == "export":
         export(a.path, a.out)
+    elif a.cmd == "check":
+        check(a.out, a.fix)
 
 
 if __name__ == "__main__":

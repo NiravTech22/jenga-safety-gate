@@ -9,7 +9,14 @@ python twin/tower_dataset.py summary                           # outcomes by sce
 python twin/tower_dataset.py show 17                           # one run
 python twin/tower_dataset.py replay 17                         # watch it in MuJoCo (re-simulated from its id)
 python twin/tower_dataset.py export data/tower_runs/runs.csv   # flat table
+python twin/tower_dataset.py check --fix                       # find runs MuJoCo silently reset; then re-run generate
 ```
+
+If MuJoCo hits a numerical blow-up it resets the simulation and carries on.
+`generate` detects this and redoes the run with a smaller time step (recorded
+in the `timestep` column). `check` finds such runs in databases made before
+that, and `generate` also redoes runs whose scenario definition has changed
+(per-scenario `version`).
 
 Each run takes about 8 s of one CPU core. Runs are deterministic from their id,
 so `replay` and re-generation reproduce them exactly.
@@ -20,7 +27,7 @@ so `replay` and re-generation reproduce them exactly.
 |---|---|---|
 | 0 | removal | 1-12 random blocks vanish one at a time (perfect extraction) |
 | 1 | pull | a random block is pulled along its length, force ramp to 0.1-4 N |
-| 2 | poke | a 0.5-8 N sideways impulse (30-300 ms) on a block in the upper half |
+| 2 | poke | a 12 mm fingertip moves into the upper half at 2-40 cm/s, 5-40 mm past the face, then back |
 | 3 | tilt | the table tilts slowly to 0-22° in a random direction |
 | 4 | shake | the table shakes sideways, 0-4 m/s² at 1-6 Hz for 2 s |
 | 5 | game | random extractions in sequence until it falls or 15 are out |
@@ -53,6 +60,9 @@ a tower that is stable on paper can be unstable with real blocks. This is the
 gap the wiggle sensing is meant to close.
 
 ## Limits
+
+Poke version 1 (a force on one block) launched blocks unrealistically fast and
+could blow up the simulation; version 2 uses a moving fingertip.
 
 Inherits the tower physics limits (soft-friction creep, heavy-load friction
 10-20% low). Removals are instantaneous, not slid out. The "partial" outcome
