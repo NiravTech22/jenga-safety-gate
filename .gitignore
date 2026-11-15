@@ -38,3 +38,6 @@ twin/models/meshes/*
 !twin/models/meshes/custom_claw_*.stl
 twin/models/*.generated.xml
 twin/models/*.bak
+
+# MuJoCo writes this on solver warnings
+MUJOCO_LOG.TXT
