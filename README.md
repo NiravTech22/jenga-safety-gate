@@ -93,6 +93,7 @@ first, then `pip install -r requirements/mujoco.txt`; see
 |---|---|
 | [PLAN.md](docs/PLAN.md) | The 10-step build plan and the thesis |
 | [PROGRESS.md](docs/PROGRESS.md) | What is done, with evidence and dates |
+| [TOWER_DATASET.md](docs/TOWER_DATASET.md) | Database of simulated tower runs: generate, query, replay |
 | [TOWER_PHYSICS.md](docs/TOWER_PHYSICS.md) | Tower physics vs static equilibrium: tests, parameters, limits |
 | [DIGITAL_TWIN.md](docs/DIGITAL_TWIN.md) | The MuJoCo twin: running it, frames, what was fixed |
 | [CAMERA_CALIBRATION.md](docs/CAMERA_CALIBRATION.md) | Calibrating real cameras and locating the tower |

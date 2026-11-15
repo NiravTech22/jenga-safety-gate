@@ -41,3 +41,6 @@ twin/models/*.bak
 
 # MuJoCo writes this on solver warnings
 MUJOCO_LOG.TXT
+
+# Generated tower-run database (twin/tower_dataset.py)
+data/tower_runs/
