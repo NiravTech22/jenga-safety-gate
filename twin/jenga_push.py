@@ -31,6 +31,7 @@ import contextlib
 import io
 import json
 import math
+import os
 import sys
 import time
 import xml.etree.ElementTree as ET
@@ -181,7 +182,7 @@ def claw_variant_xml() -> Path:
         ET.SubElement(body, "geom", name=f"tip_finger_{side}", type="box", pos=PP.fmt(t["pos"]),
                       quat=PP.fmt(t["quat"]), size=PP.fmt(t["half"]), contype="1", conaffinity="1",
                       group="0", friction=".6 .005 .0001", condim="4", solref=".006 1", rgba="1 .45 .1 1")
-    out = MODELS / "so101_custom_claw_jenga.generated.xml"
+    out = MODELS / f"so101_custom_claw_jenga.{os.getpid()}.generated.xml"   # per process: workers run in parallel
     ET.indent(tree, space="  "); tree.write(out, encoding="utf-8", xml_declaration=True)
     return out
 
@@ -200,7 +201,7 @@ def truth_xml(spec: TowerSpec) -> Path:
     g = vis.find("global") if vis.find("global") is not None else ET.SubElement(vis, "global")
     g.set("offwidth", "1280"); g.set("offheight", "960")
     _add_tower(root.find("worldbody"), spec)
-    out = MODELS / "scene_jenga.generated.xml"
+    out = MODELS / f"scene_jenga.{os.getpid()}.generated.xml"
     ET.indent(tree, space="  "); tree.write(out, encoding="utf-8", xml_declaration=True)
     return out
 
@@ -374,7 +375,12 @@ def plan_push(arm: Arm, block_pose_xyz, q_hint=None):
 class Truth:
     def __init__(self, spec: TowerSpec):
         self.spec = spec
-        self.m = mujoco.MjModel.from_xml_path(str(truth_xml(spec)))
+        scene = truth_xml(spec)
+        include = MODELS / ET.parse(scene).getroot().find("include").get("file")
+        try:
+            self.m = mujoco.MjModel.from_xml_path(str(scene))
+        finally:
+            scene.unlink(missing_ok=True); include.unlink(missing_ok=True)
         self.d = mujoco.MjData(self.m)
         self.arm = Arm(self.m)
         self.ids, self.qadr, self.dadr = block_ids(self.m), block_qadr(self.m), block_dadr(self.m)
@@ -571,13 +577,15 @@ class WorldModel:
                    - .5 * ((depth - obs["pushed_mm"]) / 2.0) ** 2)
         ess = float(w.sum() ** 2 / max((w ** 2).sum(), 1e-12))
         fell = np.zeros(samples)
-        for k in np.flatnonzero(w > .02 * w.max()):           # only samples that explain the observation
+        evaluated = np.flatnonzero(w > .02 * w.max())          # only samples that explain the observation
+        for k in evaluated:
             self._set_hidden(v, np.random.default_rng(hidden[k]))
             on = np.ones(len(v.geoms), bool); on[[r for r in removed if r not in v.qadr]] = False
             v.m.geom_contype[v.geoms] = on; v.m.geom_conaffinity[v.geoms] = on
             p_end, moving = self._pull_stage(v, states[k], removed, i)
             fell[k] = tower_failed(starts[k], p_end, exclude=removed + [i]) or moving > .05
-        p = float((w * fell).sum() / w.sum()) if w.sum() > 1e-9 else float("nan")
+        we = w[evaluated]                                       # skipped samples are unknown, not "safe"
+        p = float((we * fell[evaluated]).sum() / we.sum()) if we.sum() > 1e-9 else float("nan")
         return dict(p_fall=p, ess=ess, model_response_mm=[round(float(r), 2) for r in resp],
                     model_depth_mm=[round(float(x), 1) for x in depth])
 
@@ -637,6 +645,9 @@ def episode(seed, gated, cb=None, log=print, wm=None):
                     f"ESS={g['ess']:.1f} BLOCKED ({why}); counterfactual: {'would fall' if cf_fell else 'would be fine'}")
                 rejected.add(i)
                 truth.retreat(cb)
+                if tower_failed(obs["p0"], truth.block_pos(), exclude=truth.removed + [i]):
+                    log(f"  {name}: tower fell while the arm backed off"); result = "fell (after blocked push)"
+                    break
                 continue
         fell = truth.finish(i, obs["p0"], cb)
         if gated:

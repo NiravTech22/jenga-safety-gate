@@ -24,6 +24,7 @@ break, gate it, and honestly report whether gating helped.
 | Safety gate | Blocks actions on anomaly score with a locked threshold; fails closed | `src/safety/gate.py`, `src/runtime/` | Implemented, dry-run only |
 | Policy | ACT baseline (Step 5); the digital twin's scripted IK controller generates demonstrations | `scripts/pipeline/05_*`, `twin/` | Scripted controller works in sim; ACT pending data |
 | Digital twin | SO-101 + custom claw in MuJoCo, physics pick-and-place | `twin/` | Pick-and-place PASS in sim |
+| Tower physics | 18-layer tower that stands in equilibrium and collapses when it is lost, validated against theory | `twin/tower_physics.py` | 11/11 validation tests pass |
 | Gated extraction (sim) | Arm test-pushes Jenga blocks; a MuJoCo world model conditioned on the push gates the pull | `twin/jenga_push.py` | 12/12 towers fall ungated vs 4/12 gated (sim) |
 
 Tower state uses classical CV rather than an object detector on purpose: it gives
@@ -92,6 +93,8 @@ first, then `pip install -r requirements/mujoco.txt`; see
 |---|---|
 | [PLAN.md](docs/PLAN.md) | The 10-step build plan and the thesis |
 | [PROGRESS.md](docs/PROGRESS.md) | What is done, with evidence and dates |
+| [TOWER_DATASET.md](docs/TOWER_DATASET.md) | Database of simulated tower runs: generate, query, replay |
+| [TOWER_PHYSICS.md](docs/TOWER_PHYSICS.md) | Tower physics vs static equilibrium: tests, parameters, limits |
 | [DIGITAL_TWIN.md](docs/DIGITAL_TWIN.md) | The MuJoCo twin: running it, frames, what was fixed |
 | [CAMERA_CALIBRATION.md](docs/CAMERA_CALIBRATION.md) | Calibrating real cameras and locating the tower |
 | [SIMULATION.md](docs/SIMULATION.md) | The 2D tower simulation backend and its limits |
