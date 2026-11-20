@@ -32,8 +32,11 @@ so `replay` and re-generation reproduce them exactly.
 | 4 | shake | the table shakes sideways, 0-4 m/s² at 1-6 Hz for 2 s |
 | 5 | game | random extractions in sequence until it falls or 15 are out |
 
-Per run, randomised: 12-18 layers, friction 0.25-0.50, block mass 9-12 g, block
-thickness tolerance 0 / ±0.1 / ±0.2 / ±0.3 mm.
+Per run, randomised around the measured blocks (2026-11-20): 10-16 layers,
+friction 0.18-0.30, block mass 17.6-19.5 g, block thickness tolerance
+0 / ±0.2 / ±0.3 / ±0.4 mm. Towers with a tolerance also get per-block friction
+(sd 0.04, the measured spread); tolerance-0 towers keep identical blocks as the
+control group for the static-equilibrium check.
 
 ## What is stored
 
@@ -58,6 +61,15 @@ with blocks varying by ±0.1-0.3 mm it missed some falls. That is a real effect,
 not a bug: a few tenths of a millimetre decide which blocks carry the load, so
 a tower that is stable on paper can be unstable with real blocks. This is the
 gap the wiggle sensing is meant to close.
+
+With the measured physics (low friction, wider tolerance) the gap grows: in a
+48-run sample, identical blocks still agreed 4/4, but varied blocks agreed only
+5/12, and every miss was "predicted stands, fell". Re-running the misses showed
+the cause: per-block friction made no difference, but raising friction to 0.5
+made the removal runs stand. Rocking on uneven blocks plus low friction lets
+blocks slide out, and the load-path model only checks vertical balance, not
+sliding. Part of this may be MuJoCo creep near the friction limit; a
+real-tower check is the way to tell.
 
 ## Limits
 

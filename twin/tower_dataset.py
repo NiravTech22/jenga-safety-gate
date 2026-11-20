@@ -48,7 +48,8 @@ REPO = Path(__file__).resolve().parents[1]
 DEFAULT_OUT = REPO / "data/tower_runs"
 SCENARIOS = ("removal", "pull", "poke", "tilt", "shake", "game")
 # Per-scenario definition version: `generate` redoes stored runs whose version is out of date.
-VERSIONS = dict(removal="1", pull="1", poke="3", tilt="1", shake="1", game="1")
+# The "-m1" suffix is the physics version: runs made before the measured values are redone.
+VERSIONS = dict(removal="1-m1", pull="1-m1", poke="3-m1", tilt="1-m1", shake="1-m1", game="1-m1")
 FINGER = ('<body name="finger" mocap="true" pos="3 3 -1"><geom name="finger_geom" type="sphere" '
           'size=".006" friction=".5 .005 .0001" condim="3" rgba=".9 .3 .2 1"/></body>')
 FRAME_EVERY_S = .04                # trajectory sample period (25 Hz)
@@ -134,17 +135,23 @@ class Run:
         self.rng = rng
         self.scenario = SCENARIOS[run_id % len(SCENARIOS)] if base_seed == 0 else SCENARIOS[rng.integers(len(SCENARIOS))]
         p = TP.TowerPhysics()
-        p.layers.value = int(rng.integers(12, 19))
-        p.friction.value = float(rng.uniform(.25, .50))
-        p.block_mass.value = float(rng.uniform(.009, .012))
-        self.tol = float(rng.choice([0.0, .0001, .0002, .0003]))
+        # Ranges around Nirav's measurements (2026-11-20, see TowerPhysics sources).
+        p.layers.value = int(rng.integers(10, 17))                 # real set: 16 layers
+        p.friction.value = float(rng.uniform(.18, .30))            # measured mu 0.23 +/- 0.04
+        p.block_mass.value = float(rng.uniform(.0176, .0195))      # measured 18.5 g
+        self.tol = float(rng.choice([0.0, .0002, .0003, .0004]))   # measured thickness sd 0.19 mm
+        # Per-block friction (measured trial spread). MuJoCo takes the larger mu of the two blocks
+        # at a contact, which raises the mean by ~0.56 sd, so blocks are drawn that much lower.
+        mu, sd = p.v("friction"), p.v("friction_sd")
+        self.mu_block = {(l, s): float(np.clip(rng.normal(mu - .56 * sd, sd), .08, .6))
+                         for l in range(p.layers.value) for s in range(3)} if self.tol else None
         if timestep:
             p.timestep.value = timestep
             p.contact_timeconst.value = max(p.contact_timeconst.value * timestep / .002, 2 * timestep)
         self.p = p
         L = p.layers.value
         thick = {(l, s): float(rng.uniform(-self.tol, self.tol)) for l in range(L) for s in range(3)} if self.tol else None
-        self.tower = TP.Tower(p, thickness=thick, extra=FINGER)
+        self.tower = TP.Tower(p, thickness=thick, extra=FINGER, friction=self.mu_block)
         m = self.tower.m
         self.qadr = np.array([m.jnt_qposadr[m.body_jntadr[b]] for b in self.tower.ids])
         self.dadr = np.array([m.jnt_dofadr[m.body_jntadr[b]] for b in self.tower.ids])
@@ -418,7 +425,7 @@ def summary(out=DEFAULT_OUT):
         print(f"{sc:10s} {n:5d} {st:6d} {pa:8d} {co:10d} {onset or 0:13.2f}")
     print("\nStatic-equilibrium load-path prediction vs simulation (removal + game runs).")
     print("The prediction assumes identical blocks; real blocks differ by tenths of a mm.")
-    for label, cond in (("identical blocks", "thickness_tol_mm = 0"), ("blocks vary +/-0.1-0.3 mm", "thickness_tol_mm > 0")):
+    for label, cond in (("identical blocks", "thickness_tol_mm = 0"), ("blocks vary +/-0.2-0.4 mm", "thickness_tol_mm > 0")):
         rows = db.execute(f"SELECT predicted_stable, outcome FROM runs WHERE predicted_stable IS NOT NULL AND {cond}").fetchall()
         if not rows:
             continue

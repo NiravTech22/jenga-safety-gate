@@ -7,7 +7,8 @@ not. This module builds the tower in MuJoCo from one parameter table and checks
 it against closed-form predictions:
 
   stand     intact tower must not creep or drift
-  tilt      tilt gravity slowly; collapse angle vs atan((w/2) / h_com)
+  tilt      tilt gravity slowly (friction 0.6); tipping angle vs atan((w/2) / h_com)
+  slide     same tilt at the measured friction; the upper tower slides off at atan(mu)
   neck      leave only the middle block in a low layer (25 mm support); tilt;
             collapse angle vs atan(12.5 mm / h_com above the neck)
   remove    removal patterns: which leave the tower standing, which topple it
@@ -20,6 +21,7 @@ Usage (from the repository root):
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import math
 import sys
@@ -47,14 +49,15 @@ class Param:
 class TowerPhysics:
     """Every physical number the tower uses. Replace `source` with 'measured: ...'
     when a value comes from the real blocks."""
-    block_length: Param = field(default_factory=lambda: Param(.075, "m", "estimate: standard Jenga 7.5 cm"))
-    block_width: Param = field(default_factory=lambda: Param(.025, "m", "estimate: standard Jenga 2.5 cm"))
-    block_height: Param = field(default_factory=lambda: Param(.015, "m", "estimate: standard Jenga 1.5 cm"))
-    block_mass: Param = field(default_factory=lambda: Param(.010, "kg", "estimate: 540 g set / 54 blocks"))
+    block_length: Param = field(default_factory=lambda: Param(.07472, "m", "measured 2026-11-20: calipers, 5 blocks, 74.46-74.99 mm"))
+    block_width: Param = field(default_factory=lambda: Param(.02483, "m", "measured 2026-11-20: calipers, 5 blocks, 24.52-25.08 mm"))
+    block_height: Param = field(default_factory=lambda: Param(.01454, "m", "measured 2026-11-20: calipers, 5 blocks, 14.38-14.77 mm (sd 0.19)"))
+    block_mass: Param = field(default_factory=lambda: Param(.01854, "kg", "measured 2026-11-20: 5 blocks = 92.70 g"))
     side_gap: Param = field(default_factory=lambda: Param(.0005, "m", "estimate: blocks in a layer are not glued edge to edge"))
-    layers: Param = field(default_factory=lambda: Param(18, "-", "estimate: standard tower"))
-    friction: Param = field(default_factory=lambda: Param(.40, "-", "estimate: wood-wood static 0.25-0.50 (lab value 0.43)"))
-    table_friction: Param = field(default_factory=lambda: Param(.50, "-", "estimate: wood on a table top"))
+    layers: Param = field(default_factory=lambda: Param(16, "-", "measured: Nirav's set builds 16 layers"))
+    friction: Param = field(default_factory=lambda: Param(.23, "-", "measured 2026-11-20: block-on-block tilt, 10 trials, 10-17 deg, mu=tan(13.2)"))
+    friction_sd: Param = field(default_factory=lambda: Param(.04, "-", "measured 2026-11-20: spread of the 10 tilt trials (sd 2.2 deg)"))
+    table_friction: Param = field(default_factory=lambda: Param(.50, "-", "estimate: wood on the arm table (base never slid in the tilt tests)"))
     # Contact model: wood is stiff but not rigid. solref = (time constant, damping
     # ratio); solimp sets how hard contacts get as they compress. A tower in
     # equilibrium must sit still (no creep) and a tower out of equilibrium must
@@ -89,11 +92,13 @@ def block_pose(layer, slot, p=P, xy=(0.0, 0.0)):
     return np.array([x, y, p.v("block_height") * (layer + .5)]), yaw
 
 
-def add_tower(world, p=P, removed=(), thickness=None, xy=(0.0, 0.0), prefix="block"):
+def add_tower(world, p=P, removed=(), thickness=None, xy=(0.0, 0.0), prefix="block", friction=None):
     """Add tower bodies to an XML worldbody. thickness: {(layer, slot): extra metres}.
+    friction: {(layer, slot): mu} per block (MuJoCo uses the larger of the two at a contact).
     Layers sit exactly on each other; a thicker block lifts its whole layer's support."""
     L, W, H, m = (p.v(k) for k in ("block_length", "block_width", "block_height", "block_mass"))
     thickness = thickness or {}
+    friction = friction or {}
     z = 0.0
     for layer in range(int(p.v("layers"))):
         extra = [thickness.get((layer, s), 0.0) for s in range(3)]
@@ -109,13 +114,13 @@ def add_tower(world, p=P, removed=(), thickness=None, xy=(0.0, 0.0), prefix="blo
             shade = .80 - .08 * (layer % 2)
             ET.SubElement(b, "geom", name=f"{prefix}_{layer}_{s}_geom", type="box",
                           size=f"{L / 2:.6f} {W / 2:.6f} {h / 2:.6f}", mass=f"{m:.6f}",
-                          friction=f"{p.v('friction'):.4f} .005 .0001", condim="3",
+                          friction=f"{friction.get((layer, s), p.v('friction')):.4f} .005 .0001", condim="3",
                           solref=f"{p.v('contact_timeconst'):.5f} {p.v('contact_dampratio'):.3f}",
                           solimp=f".99 .999 {p.v('contact_solimp'):.6f}", rgba=f"{shade:.2f} {shade * .72:.2f} {shade * .43:.2f} 1")
         z += H + max(extra)
 
 
-def tower_xml(p=P, removed=(), thickness=None, gravity=(0, 0, -9.81), extra=""):
+def tower_xml(p=P, removed=(), thickness=None, gravity=(0, 0, -9.81), extra="", friction=None):
     root = ET.Element("mujoco", model="jenga_tower")
     ET.SubElement(root, "compiler", angle="radian")
     ET.SubElement(root, "option", timestep=f"{p.v('timestep')}", integrator="implicitfast", cone="elliptic",
@@ -127,15 +132,15 @@ def tower_xml(p=P, removed=(), thickness=None, gravity=(0, 0, -9.81), extra=""):
     ET.SubElement(w, "light", pos="0.3 -0.4 1.2", dir="-0.3 0.4 -1", diffuse=".8 .8 .8")
     ET.SubElement(w, "geom", name="table", type="plane", size="1 1 .01", rgba=".25 .28 .32 1",
                   friction=f"{p.v('table_friction'):.3f} .005 .0001")
-    add_tower(w, p, removed, thickness)
+    add_tower(w, p, removed, thickness, friction=friction)
     s = ET.tostring(root, encoding="unicode")
     return s.replace("</worldbody>", extra + "</worldbody>") if extra else s
 
 
 class Tower:
-    def __init__(self, p=P, removed=(), thickness=None, gravity=(0, 0, -9.81), extra=""):
+    def __init__(self, p=P, removed=(), thickness=None, gravity=(0, 0, -9.81), extra="", friction=None):
         self.p = p
-        self.m = mujoco.MjModel.from_xml_string(tower_xml(p, removed, thickness, gravity, extra))
+        self.m = mujoco.MjModel.from_xml_string(tower_xml(p, removed, thickness, gravity, extra, friction))
         self.d = mujoco.MjData(self.m)
         self.names = [(l, s) for l in range(int(p.v("layers"))) for s in range(3) if (l, s) not in removed]
         self.ids = np.array([self.m.body(f"block_{l}_{s}").id for l, s in self.names])
@@ -181,6 +186,12 @@ def predict_tilt_deg(p=P):
     tan(theta) = (half base width) / (height of the centre of mass)."""
     half_w = (3 * p.v("block_width") + 2 * p.v("side_gap")) / 2
     return math.degrees(math.atan(half_w / (tower_height(p) / 2)))
+
+
+def predict_slide_deg(p=P):
+    """Tilted by theta, every block-on-block interface carries tangential/normal = tan(theta)
+    (both scale with the weight above), so the tower slides when tan(theta) = mu."""
+    return math.degrees(math.atan(p.v("friction")))
 
 
 def predict_neck_deg(p=P, neck_layer=2):
@@ -239,13 +250,16 @@ def equilibrium_margin_mm(com, edge_h, edge_z, tilt_deg, h=1):
     return 1000 * ((edge_h - com[h]) * math.cos(a) - (com[2] - edge_z) * math.sin(a))
 
 
+SLIDE_MM = 20.0        # a block 2 cm off its start position (blocks still level) = sliding off
+
+
 def _tilt_until_collapse(t, axis="x", step=.25, hold=.25, start=0.0, stop=30.0, cb=None):
     """Raise the tilt in small steps. Tipping is rotation that keeps growing: a tower
     past equilibrium rotates about its support edge at a constant tilt. (MuJoCo's
     soft friction lets blocks creep sideways under load; creep keeps them level,
     so it cannot be mistaken for tipping.) Returns (onset angle, fraction down)."""
     t.run(.5, cb); ref = t.pos(); top = int(np.argmax(ref[:, 2]))
-    t.last_stable = None
+    t.last_stable = None; t.mode = None
     a = 0.0
     while a < start:
         a = min(start, a + 1.0); t.set_gravity(a, axis); t.run(.2, cb)
@@ -258,6 +272,12 @@ def _tilt_until_collapse(t, axis="x", step=.25, hold=.25, start=0.0, stop=30.0, 
         # A tower in equilibrium leans a little (compliant contacts) and settles;
         # past equilibrium it keeps rotating at a constant tilt.
         if r2 > 1.0 and r2 - r1 > .2:
+            t.mode = "tip"
+            t.run(2.5, cb)
+            return a, t.collapse_fraction(ref)
+        # Sliding: blocks stay level but the upper tower slips off the one below.
+        if 1000 * np.abs(t.pos() - ref)[:, :2].max() > SLIDE_MM:
+            t.mode = "slide"
             t.run(2.5, cb)
             return a, t.collapse_fraction(ref)
         t.last_stable = (a, t.pos().copy())          # deformed shape at the last angle that held
@@ -276,18 +296,35 @@ def _onset_margin(t, mask, edge_h, edge_z, step, h=1):
 
 
 def test_tilt(p=P, cb=None, step=.25):
+    """Tipping law in isolation: friction raised to 0.6 so the tower cannot slide first."""
+    p = copy.deepcopy(p); p.friction.value = max(p.v("friction"), .6)
     t = Tower(p)
     rigid = predict_tilt_deg(p)
     onset, frac = _tilt_until_collapse(t, "x", step=step, start=max(0.0, rigid - 6), cb=cb)
     half_w = (3 * p.v("block_width") + 2 * p.v("side_gap")) / 2
     m_ok, m_next = _onset_margin(t, np.ones(len(t.ids), bool), half_w, 0.0, step)
-    return dict(test="tilt (whole tower)", predicted=f"tips when margin<=0; rigid {rigid:.1f} deg",
-                measured=f"tips at {onset:.2f} deg; margin {m_ok:+.1f}/{m_next:+.1f} mm; {frac:.0%} down",
-                passed=m_ok >= -2 and m_next <= 2 and frac > .5 and onset >= .8 * rigid, value=onset,
+    return dict(test="tilt, high friction (tips)", predicted=f"tips when margin<=0; rigid {rigid:.1f} deg",
+                measured=f"{t.mode} at {onset:.2f} deg; margin {m_ok:+.1f}/{m_next:+.1f} mm; {frac:.0%} down",
+                passed=t.mode == "tip" and m_ok >= -2 and m_next <= 2 and frac > .5 and onset >= .8 * rigid, value=onset,
                 rigid_deg=rigid, margin_mm=[m_ok, m_next])
 
 
+def test_slide(p=P, cb=None, step=.25):
+    """Measured friction: tan(slide angle) = mu is below tan(tip angle), so the upper tower
+    slides off before the whole tower tips (what the real 16-layer tower did 2 of 3 times)."""
+    t = Tower(p)
+    slide, tip = predict_slide_deg(p), predict_tilt_deg(p)
+    onset, frac = _tilt_until_collapse(t, "x", step=step, start=max(0.0, slide - 6), cb=cb)
+    return dict(test="tilt, measured friction (slides)", predicted=f"slides {slide:.1f} deg (tips {tip:.1f})",
+                measured=f"{t.mode} at {onset:.2f} deg; {frac:.0%} down",
+                passed=t.mode == "slide" and .8 * slide <= onset <= 1.05 * slide, value=onset, slide_deg=slide, tip_deg=tip)
+
+
 def test_neck(p=P, neck_layer=2, cb=None, step=.1):
+    # Tipping law in isolation (as in test_tilt): at the measured mu = 0.23, MuJoCo's soft-friction
+    # creep slides the upper tower ~1 mm on the neck before it tips (onset 6.0 deg, margin law still
+    # holds at -0.2 mm), which real wood does not do. Friction 0.6 removes the creep: 6.4 deg.
+    p = copy.deepcopy(p); p.friction.value = max(p.v("friction"), .6)
     t = Tower(p, removed={(neck_layer, 0), (neck_layer, 2)})
     rigid = predict_neck_deg(p, neck_layer)
     # Tip across the neck block's 25 mm width: even layers lie along x (tilt toward +y),
@@ -384,7 +421,7 @@ def test_creep(p=P, layer=8, frac=.5):
 
 def validate(p=P, out=OUT_DIR / "tower_physics_validation.json"):
     t0 = time.time()
-    rows = [test_stand(p), test_tilt(p), test_neck(p)] + test_removal(p) + test_pull(p) + [test_creep(p)]
+    rows = [test_stand(p), test_tilt(p), test_slide(p), test_neck(p)] + test_removal(p) + test_pull(p) + [test_creep(p)]
     width = max(len(r["test"]) for r in rows)
     print(f"\n{'test':{width}s}  {'theory':>12s}  measured")
     for r in rows:
