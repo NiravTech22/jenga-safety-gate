@@ -163,3 +163,12 @@ to read joint state and command joint positions, and both tools work.
   value. Before Step 3 recording begins: measure true table height in the
   base frame (jog down to contact, read FK Z) and set `z_floor` a few mm
   below that measured value, then delete the `-0.05` override.
+
+## 2026-11-20: tower physics set to measured blocks
+
+Measured: μ = 0.23 ± 0.04 (10 tilt trials), 18.5 g blocks, 74.72 × 24.83 ×
+14.54 mm, 16 layers, collapse on a tilt board at 8° / 10° (slid) and 18°
+(tipped). Updated `TowerPhysics`, added a sliding test, per-block friction and
+measured randomisation ranges in the dataset (physics version `-m1`, so
+`generate` redoes all runs). Validation 12/12. First finding: at the real
+friction, sliding is a failure mode the static load-path model does not see.

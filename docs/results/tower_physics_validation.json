@@ -1,24 +1,24 @@
 {
   "parameters": {
     "block_length": {
-      "value": 0.075,
+      "value": 0.07472,
       "unit": "m",
-      "source": "estimate: standard Jenga 7.5 cm"
+      "source": "measured 2026-11-20: calipers, 5 blocks, 74.46-74.99 mm"
     },
     "block_width": {
-      "value": 0.025,
+      "value": 0.02483,
       "unit": "m",
-      "source": "estimate: standard Jenga 2.5 cm"
+      "source": "measured 2026-11-20: calipers, 5 blocks, 24.52-25.08 mm"
     },
     "block_height": {
-      "value": 0.015,
+      "value": 0.01454,
       "unit": "m",
-      "source": "estimate: standard Jenga 1.5 cm"
+      "source": "measured 2026-11-20: calipers, 5 blocks, 14.38-14.77 mm (sd 0.19)"
     },
     "block_mass": {
-      "value": 0.01,
+      "value": 0.01854,
       "unit": "kg",
-      "source": "estimate: 540 g set / 54 blocks"
+      "source": "measured 2026-11-20: 5 blocks = 92.70 g"
     },
     "side_gap": {
       "value": 0.0005,
@@ -26,19 +26,24 @@
       "source": "estimate: blocks in a layer are not glued edge to edge"
     },
     "layers": {
-      "value": 18,
+      "value": 16,
       "unit": "-",
-      "source": "estimate: standard tower"
+      "source": "measured: Nirav's set builds 16 layers"
     },
     "friction": {
-      "value": 0.4,
+      "value": 0.23,
       "unit": "-",
-      "source": "estimate: wood-wood static 0.25-0.50 (lab value 0.43)"
+      "source": "measured 2026-11-20: block-on-block tilt, 10 trials, 10-17 deg, mu=tan(13.2)"
+    },
+    "friction_sd": {
+      "value": 0.04,
+      "unit": "-",
+      "source": "measured 2026-11-20: spread of the 10 tilt trials (sd 2.2 deg)"
     },
     "table_friction": {
       "value": 0.5,
       "unit": "-",
-      "source": "estimate: wood on a table top"
+      "source": "estimate: wood on the arm table (base never slid in the tilt tests)"
     },
     "contact_timeconst": {
       "value": 0.003,
@@ -77,30 +82,39 @@
       "predicted": "0 mm drift",
       "measured": "0.000 mm in 10 s",
       "passed": true,
-      "value": 4.0707781045868425e-06
+      "value": 3.3888678523579484e-05
     },
     {
-      "test": "tilt (whole tower)",
-      "predicted": "tips when margin<=0; rigid 15.7 deg",
-      "measured": "tips at 12.97 deg; margin +0.9/+0.3 mm; 85% down",
+      "test": "tilt, high friction (tips)",
+      "predicted": "tips when margin<=0; rigid 18.0 deg",
+      "measured": "tip at 15.48 deg; margin -0.3/-0.8 mm; 83% down",
       "passed": true,
-      "value": 12.970927785822772,
-      "rigid_deg": 15.720927785822772,
+      "value": 15.477872420631062,
+      "rigid_deg": 17.977872420631062,
       "margin_mm": [
-        0.9252100949089203,
-        0.31936789391680265
+        -0.30452098446817966,
+        -0.8318269623655734
       ]
     },
     {
-      "test": "tilt on a one-block neck",
-      "predicted": "tips when margin<=0; rigid 6.3 deg",
-      "measured": "tips at 5.44 deg; margin +0.2/+0.0 mm; 87% down",
+      "test": "tilt, measured friction (slides)",
+      "predicted": "slides 13.0 deg (tips 18.0)",
+      "measured": "slide at 11.70 deg; 83% down",
       "passed": true,
-      "value": 5.440191745909906,
-      "rigid_deg": 6.340191745909911,
+      "value": 11.70276451337552,
+      "slide_deg": 12.95276451337552,
+      "tip_deg": 17.977872420631062
+    },
+    {
+      "test": "tilt on a one-block neck",
+      "predicted": "tips when margin<=0; rigid 7.5 deg",
+      "measured": "tips at 6.38 deg; margin -0.0/-0.2 mm; 85% down",
+      "passed": true,
+      "value": 6.383625189257301,
+      "rigid_deg": 7.483625189257308,
       "margin_mm": [
-        0.2262529878016388,
-        0.02942655915446485
+        -0.024984638356916403,
+        -0.19065298528847358
       ]
     },
     {
@@ -124,36 +138,36 @@
     {
       "test": "remove layer 3 slots [0, 1]",
       "predicted": "collapses",
-      "measured": "collapses (71% of blocks down)",
+      "measured": "collapses (72% of blocks down)",
       "passed": true
     },
     {
       "test": "remove layer 3 slots [1, 2]",
       "predicted": "collapses",
-      "measured": "collapses (71% of blocks down)",
+      "measured": "collapses (78% of blocks down)",
       "passed": true
     },
     {
       "test": "pull loaded block (layer 8)",
-      "predicted": "1.10-2.16 N",
-      "measured": "always out from 0.93 N (stick-slip above 0.90 N)",
-      "value": 0.9339120000000002,
-      "held_n": 0.9009504000000002,
+      "predicted": "0.92-1.80 N",
+      "measured": "always out from 0.87 N (stick-slip above 0.84 N)",
+      "value": 0.8650816653600002,
+      "held_n": 0.8374726760400002,
       "passed": 1.0
     },
     {
       "test": "pull loose block (layer 8)",
-      "predicted": "0.039 N",
-      "measured": "0.040 N",
-      "value": 0.039853125,
+      "predicted": "0.042 N",
+      "measured": "0.042 N",
+      "value": 0.04248542390625,
       "passed": true
     },
     {
       "test": "creep at 50% of friction limit",
       "predicted": "0 mm/s (real wood)",
-      "measured": "0.28 mm/s (MuJoCo soft friction)",
+      "measured": "0.26 mm/s (MuJoCo soft friction)",
       "passed": 1.0,
-      "value": 0.281918469358839
+      "value": 0.25622765521187746
     }
   ]
 }
