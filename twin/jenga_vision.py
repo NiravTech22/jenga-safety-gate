@@ -105,11 +105,16 @@ def circular_mean_deg(angles_deg):
     return float(np.degrees(np.arctan2(np.sin(a).mean(), np.cos(a).mean())))
 
 
-def board_in_robot(origin_xyz, yaw_deg):
+def board_in_robot(origin_xyz, yaw_deg, frame="arm"):
     """Board lying FACE UP. Board frame (OpenCV ChArUco): origin at the corner marked ORIGIN,
-    +x along the edge marked '+X', +y across the board, +z into the table."""
+    +x along the edge marked '+X', +y across the board, +z into the table.
+    frame "arm": origin measured from the table point under the shoulder-pan axis (pan offset added).
+    frame "orbit": origin measured from the orbit centre on the table (where the tower stands);
+    the arm rides the orbit, so its base pose comes from the orbit angle, not from this calibration."""
     R = rotz(yaw_deg) @ np.diag([1.0, -1.0, -1.0])
-    p = np.asarray(origin_xyz, float).copy(); p[:2] += PAN_AXIS_XY
+    p = np.asarray(origin_xyz, float).copy()
+    if frame == "arm":
+        p[:2] += PAN_AXIS_XY
     return T_from(R, p)
 
 
@@ -254,9 +259,9 @@ def cmd_intrinsics(a):
 
 
 # ---------------------------------------------------------------- extrinsics
-def camera_in_robot(frames_gray, intr, b, origin_xyz, yaw_deg):
+def camera_in_robot(frames_gray, intr, b, origin_xyz, yaw_deg, frame="arm"):
     K, dist = K_dist(intr)
-    T_base_board = board_in_robot(origin_xyz, yaw_deg)
+    T_base_board = board_in_robot(origin_xyz, yaw_deg, frame)
     Ts, errs = [], []
     for g in frames_gray:
         det = detect_board(g, b, 12)
@@ -284,11 +289,11 @@ def cmd_extrinsics(a):
             if ok:
                 frames.append(cv2.cvtColor(f, cv2.COLOR_BGR2GRAY))
         cap.release()
-    T, err, n = camera_in_robot(frames, intr, b, a.board_origin, a.board_yaw)
+    T, err, n = camera_in_robot(frames, intr, b, a.board_origin, a.board_yaw, a.frame)
     fwd = T[:3, 2]
-    print(f"camera position (robot frame, m): {T[:3,3]}   from {n} frames, reprojection {err:.2f} px")
+    print(f"camera position ({a.frame} frame, m): {T[:3,3]}   from {n} frames, reprojection {err:.2f} px")
     print(f"camera looks along {fwd}  (pitch {math.degrees(math.asin(-fwd[2])):.1f} deg down)")
-    save_json(a.out, dict(T_base_cam=T.tolist(), board_origin=list(a.board_origin), board_yaw_deg=a.board_yaw,
+    save_json(a.out, dict(T_base_cam=T.tolist(), frame=a.frame, board_origin=list(a.board_origin), board_yaw_deg=a.board_yaw,
                           reproj_px=err, intrinsics=str(a.intrinsics)))
 
 
@@ -380,7 +385,10 @@ def mujoco_camera_attrs(intr, T_base_cam, name):
 def cmd_mujoco_camera(a):
     import shutil
     import xml.etree.ElementTree as ET
-    intr = load_json(a.intrinsics); T = np.array(load_json(a.extrinsics)["T_base_cam"])
+    intr = load_json(a.intrinsics); ext = load_json(a.extrinsics); T = np.array(ext["T_base_cam"])
+    if ext.get("frame", "arm") != "arm":
+        sys.exit("mujoco-camera places the camera in the arm-base frame of the twin scene; these extrinsics are in "
+                 f"the '{ext['frame']}' frame. Add the arm's base pose on the orbit to the scene first.")
     attrs = mujoco_camera_attrs(intr, T, a.name)
     p = Path(a.scene); tree = ET.parse(p); world = tree.getroot().find("worldbody")
     for c in world.findall("camera"):
@@ -533,6 +541,9 @@ def main():
     p.add_argument("--board-origin", type=float, nargs=3, required=True, metavar=("X", "Y", "Z"),
                    help="ORIGIN corner, metres, measured from the table point under the shoulder-pan axis")
     p.add_argument("--board-yaw", type=float, default=0.0, help="deg; 0 = '+X' arrow along robot +X")
+    p.add_argument("--frame", choices=["arm", "orbit"], default="arm",
+                   help="arm: origin from the point under the shoulder-pan axis (fixed arm); "
+                        "orbit: origin from the orbit centre, +X toward the arm's home (orbit angle 0)")
     p.add_argument("--image", help="use a saved image instead of the live camera")
     p.add_argument("--frames", type=int, default=20); p.add_argument("--out", default="data/calibration/front_extrinsics.json")
     p.set_defaults(f=cmd_extrinsics)

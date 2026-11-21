@@ -36,6 +36,13 @@ ORIGIN corner in metres, measured from the table point under the centre of the
 shoulder-pan axis (the script adds the pan-axis offset). `--board-yaw` covers a
 board that is not square to the robot.
 
+**Orbit rig (arm on a track around the tower):** use `--frame orbit`. The board
+origin is then measured from the **orbit centre** on the table (where the tower
+stands), with +X pointing toward the arm's home position (orbit angle 0). The
+overhead camera and the tower are fixed to the table, so this frame stays put
+while the arm moves; the arm's base pose in it comes from the orbit encoder.
+`mujoco-camera` refuses orbit-frame extrinsics until the twin scene has the orbit.
+
 **`--marker-z`** is the height of the marker surface above the robot's base
 surface (for example the plate thickness).
 
