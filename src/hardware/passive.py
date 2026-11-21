@@ -5,6 +5,7 @@ sent, using publish_telemetry after its existing read/send operations. This modu
 never connects to a servo bus or exposes a motor command method.
 """
 import json
+import sys
 import threading
 import time
 from pathlib import Path
@@ -50,15 +51,25 @@ class CameraStreams:
         self.stop = threading.Event()
         self.lock = threading.Lock()
         self.samples, self.caps, self.threads = {}, [], []
+        self.formats = {}
         try:
             for name, device in devices.items():
-                cap = cv2.VideoCapture(device)
+                cap = (cv2.VideoCapture(device, cv2.CAP_V4L2) if sys.platform.startswith("linux")
+                       else cv2.VideoCapture(device))
                 self.caps.append(cap)
                 if not cap.isOpened():
                     raise RuntimeError(f"cannot open {name} device {device}")
+                # MJPG first: many webcams give 1280x720 at 30 fps only as MJPG (raw YUYV: 5 fps).
+                cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
                 cap.set(cv2.CAP_PROP_FRAME_WIDTH, resolution[0])
                 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, resolution[1])
                 cap.set(cv2.CAP_PROP_FPS, fps)
+                got = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+                self.formats[name] = dict(size=list(got), fps=float(cap.get(cv2.CAP_PROP_FPS)),
+                                          fourcc=int(cap.get(cv2.CAP_PROP_FOURCC)).to_bytes(4, "little").decode("ascii", "replace"))
+                if got != tuple(resolution):
+                    raise RuntimeError(f"{name} camera gave {got[0]}x{got[1]}, not {resolution[0]}x{resolution[1]}; "
+                                       "calibration would not match the frames")
                 thread = threading.Thread(target=self._run, args=(name, cap), daemon=True)
                 self.threads.append(thread)
                 thread.start()
