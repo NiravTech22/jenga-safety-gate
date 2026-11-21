@@ -28,7 +28,8 @@ v4l2-ctl -d /dev/video0 -c auto_exposure=1 -c exposure_time_absolute=200 \
          -c white_balance_automatic=0 -c focus_automatic_continuous=0
 ```
 
-Do the same for the wrist camera. The overhead camera must not move after
+Do the same for the wrist camera. For Nirav's two cameras this is scripted:
+`./scripts/tools/lock_cameras.sh` (run it before every session; settings reset on replug). The overhead camera must not move after
 calibration; if it is bumped, redo step 2. Use fixed lighting.
 
 ## 2. Calibrate
