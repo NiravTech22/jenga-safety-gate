@@ -33,10 +33,9 @@ so `replay` and re-generation reproduce them exactly.
 | 5 | game | random extractions in sequence until it falls or 15 are out |
 
 Per run, randomised around the measured blocks (2026-11-20): 10-16 layers,
-friction 0.18-0.30, block mass 17.6-19.5 g, block thickness tolerance
-0 / ±0.2 / ±0.3 / ±0.4 mm. Towers with a tolerance also get per-block friction
-(sd 0.04, the measured spread); tolerance-0 towers keep identical blocks as the
-control group for the static-equilibrium check.
+friction 0.18-0.30, block mass 17.6-19.5 g. In half the runs friction also
+varies block to block (sd 0.04, the measured spread). **Block geometry is
+identical in every run** (see below for why).
 
 ## What is stored
 
@@ -56,20 +55,28 @@ it) have a resultant along its length, which must lie over its supports; the
 load is passed down by force and moment balance. It is evaluated after every
 removal, and the least stable state counts.
 
-First runs: with **identical blocks it agreed with the simulation every time**;
-with blocks varying by ±0.1-0.3 mm it missed some falls. That is a real effect,
-not a bug: a few tenths of a millimetre decide which blocks carry the load, so
-a tower that is stable on paper can be unstable with real blocks. This is the
-gap the wiggle sensing is meant to close.
+With identical blocks it agrees with the simulation in nearly every run
+(43/44 in the first database, 19/20 in the current sample), with uniform or
+per-block friction.
 
-With the measured physics (low friction, wider tolerance) the gap grows: in a
-48-run sample, identical blocks still agreed 4/4, but varied blocks agreed only
-5/12, and every miss was "predicted stands, fell". Re-running the misses showed
-the cause: per-block friction made no difference, but raising friction to 0.5
-made the removal runs stand. Rocking on uneven blocks plus low friction lets
-blocks slide out, and the load-path model only checks vertical balance, not
-sliding. Part of this may be MuJoCo creep near the friction limit; a
-real-tower check is the way to tell.
+### Why block thickness is not varied (2026-11-21)
+
+Real blocks differ in thickness (measured sd 0.19 mm), so in a real tower some
+blocks carry the load and others are loose: in a 16-layer test, the layer-3
+block was tight and the layer-2, 4 and 7 blocks were loose, and the tower stood
+through all four removals. Modelling that geometrically does not work in MuJoCo:
+a block resting on two supports of different heights rocks and slowly walks
+under MuJoCo's stiff box contacts, and towers of varied blocks drifted 9-400 mm
+in 3 s **with nothing removed** (identical towers: under 1 µm/s). Eight fixes
+were tried (contact damping, time step, torsional friction, no-slip, rotational
+damping, settle-then-stiffen, contact margin, pyramidal cone); none settled the
+tower without making it far softer than the real one (tipping at ~10° instead of
+18°). Earlier databases with `thickness_tol_mm > 0` are invalid for that reason,
+and `summary` reports them separately.
+
+So which blocks are tight is treated as **uncertainty the gate must sense**
+(wiggle force, servo current), not something the simulation predicts. A
+regression test checks that every dataset tower comes to rest untouched.
 
 ## Limits
 

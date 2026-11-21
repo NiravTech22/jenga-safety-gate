@@ -172,3 +172,12 @@ Measured: μ = 0.23 ± 0.04 (10 tilt trials), 18.5 g blocks, 74.72 × 24.83 ×
 measured randomisation ranges in the dataset (physics version `-m1`, so
 `generate` redoes all runs). Validation 12/12. First finding: at the real
 friction, sliding is a failure mode the static load-path model does not see.
+
+## 2026-11-21: identical block geometry in the dataset
+
+Real-tower check: 16 layers, blocks removed from layers 2, 3, 4 and 7; the tower
+stood (layer 3 tight, the others loose). The simulation fell far more often, and
+the cause was a MuJoCo artifact: towers of varied-thickness blocks walk apart with
+nothing removed. The ~84% / 61% "varied blocks" agreement numbers were artifacts,
+not evidence. The dataset now uses identical geometry with per-block friction in
+half the runs (physics version `-m2`); tight vs loose is left for wiggle sensing.
