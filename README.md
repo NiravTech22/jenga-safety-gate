@@ -99,7 +99,8 @@ first, then `pip install -r requirements/mujoco.txt`; see
 | [CAMERA_CALIBRATION.md](docs/CAMERA_CALIBRATION.md) | Calibrating real cameras and locating the tower |
 | [SIMULATION.md](docs/SIMULATION.md) | The 2D tower simulation backend and its limits |
 | [MUJOCO_TRAINING.md](docs/MUJOCO_TRAINING.md) | MuJoCo + V-JEPA training recipe |
-| [RECORDING.md](docs/RECORDING.md) | Overhead + wrist recording and replay |
+| [REAL_DATA.md](docs/REAL_DATA.md) | Collecting real episodes: cameras, calibration, arm telemetry, what to record |
+| [RECORDING.md](docs/RECORDING.md) | Overhead + wrist recording and replay (format details) |
 | [INTEGRATION.md](docs/INTEGRATION.md) | Parallel inference runtime and gate semantics |
 
 ## Still needed for autonomous Jenga

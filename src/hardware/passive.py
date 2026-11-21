@@ -16,16 +16,17 @@ from src.data.recording_v2 import atomic_json
 
 def publish_telemetry(path, *, joint_state, action, state_timestamp,
                       action_timestamp, sequence_id, joint_names, joint_units,
-                      calibration_version):
+                      calibration_version, extra=None):
     """Call on the recorder host. Timestamps must come from time.monotonic().
 
     State is encoder feedback, action is the command sent by teleop, not IK intent.
     Units must be explicit; no automatic radians/normalized/ticks conversion.
+    extra: further measured fields (e.g. servo current), stored with each tick.
     """
     atomic_json(path, dict(joint_state=list(joint_state), action=list(action),
         state_timestamp=state_timestamp, action_timestamp=action_timestamp,
         sequence_id=sequence_id, joint_names=list(joint_names), joint_units=joint_units,
-        calibration_version=calibration_version))
+        calibration_version=calibration_version, **(extra or {})))
 
 
 class TelemetryFile:

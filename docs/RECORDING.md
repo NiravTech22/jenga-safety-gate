@@ -16,6 +16,8 @@ The cameras are installed; the wrist camera moves with the arm. Wrist extrinsics
 require hand-eye calibration plus the measured arm configuration. Existing fixed
 side-camera calibration and MuJoCo side-view risk training do not transfer to it.
 
+> Without VR teleop, use the read-only arm bridge `scripts/tools/so101_telemetry.py`; the full workflow is in [REAL_DATA.md](REAL_DATA.md).
+
 The external VR server implementation was not found in this repository or the
 searched local Documents/Desktop/robot_arm_sim sources. `VRTeleopArm.read_joints`
 and `command_joints` are unimplemented. The precise missing integration is a hook
