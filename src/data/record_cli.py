@@ -49,6 +49,8 @@ def main():
     try:
         if args.hardware:
             cameras = CameraStreams({"overhead": args.overhead, "wrist": args.wrist})
+            rec.data["metadata"]["camera_formats"] = cameras.formats
+            print("cameras:", cameras.formats)
             deadline = time.monotonic() + 5
             while len(cameras.snapshot()) < 2:
                 if time.monotonic() >= deadline:
