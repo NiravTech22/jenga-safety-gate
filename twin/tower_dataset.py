@@ -49,7 +49,7 @@ DEFAULT_OUT = REPO / "data/tower_runs"
 SCENARIOS = ("removal", "pull", "poke", "tilt", "shake", "game")
 # Per-scenario definition version: `generate` redoes stored runs whose version is out of date.
 # The "-m1" suffix is the physics version: runs made before the measured values are redone.
-VERSIONS = dict(removal="1-m1", pull="1-m1", poke="3-m1", tilt="1-m1", shake="1-m1", game="1-m1")
+VERSIONS = dict(removal="1-m2", pull="1-m2", poke="3-m2", tilt="1-m2", shake="1-m2", game="1-m2")
 FINGER = ('<body name="finger" mocap="true" pos="3 3 -1"><geom name="finger_geom" type="sphere" '
           'size=".006" friction=".5 .005 .0001" condim="3" rgba=".9 .3 .2 1"/></body>')
 FRAME_EVERY_S = .04                # trajectory sample period (25 Hz)
@@ -57,7 +57,7 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
     id INTEGER PRIMARY KEY,
     seed INTEGER, scenario TEXT, version TEXT,
-    layers INTEGER, friction REAL, block_mass_g REAL, thickness_tol_mm REAL,
+    layers INTEGER, friction REAL, block_mass_g REAL, thickness_tol_mm REAL, friction_sd REAL,
     scenario_params TEXT,
     outcome TEXT, blocks_fell INTEGER,
     collapsed INTEGER, onset_s REAL, fraction_down REAL, max_top_disp_mm REAL,
@@ -139,18 +139,23 @@ class Run:
         p.layers.value = int(rng.integers(10, 17))                 # real set: 16 layers
         p.friction.value = float(rng.uniform(.18, .30))            # measured mu 0.23 +/- 0.04
         p.block_mass.value = float(rng.uniform(.0176, .0195))      # measured 18.5 g
-        self.tol = float(rng.choice([0.0, .0002, .0003, .0004]))   # measured thickness sd 0.19 mm
-        # Per-block friction (measured trial spread). MuJoCo takes the larger mu of the two blocks
-        # at a contact, which raises the mean by ~0.56 sd, so blocks are drawn that much lower.
-        mu, sd = p.v("friction"), p.v("friction_sd")
-        self.mu_block = {(l, s): float(np.clip(rng.normal(mu - .56 * sd, sd), .08, .6))
-                         for l in range(p.layers.value) for s in range(3)} if self.tol else None
+        # Block geometry is identical in every run. Varied thickness (real blocks: sd 0.19 mm) made
+        # MuJoCo towers rock and walk apart with nothing removed (9-400 mm in 3 s; 2026-11-21), while
+        # the real tower stood. Which blocks are tight is left as uncertainty for the gate to sense
+        # (wiggle force) instead of being simulated. Friction varies per block in half the runs.
+        self.tol = 0.0
+        mu = p.v("friction")
+        self.mu_sd = float(p.v("friction_sd")) if rng.random() < .5 else 0.0
+        # MuJoCo takes the larger mu of the two blocks at a contact, which raises the mean by
+        # ~0.56 sd, so blocks are drawn that much lower.
+        self.mu_block = {(l, s): float(np.clip(rng.normal(mu - .56 * self.mu_sd, self.mu_sd), .08, .6))
+                         for l in range(p.layers.value) for s in range(3)} if self.mu_sd else None
         if timestep:
             p.timestep.value = timestep
             p.contact_timeconst.value = max(p.contact_timeconst.value * timestep / .002, 2 * timestep)
         self.p = p
         L = p.layers.value
-        thick = {(l, s): float(rng.uniform(-self.tol, self.tol)) for l in range(L) for s in range(3)} if self.tol else None
+        thick = None
         self.tower = TP.Tower(p, thickness=thick, extra=FINGER, friction=self.mu_block)
         m = self.tower.m
         self.qadr = np.array([m.jnt_qposadr[m.body_jntadr[b]] for b in self.tower.ids])
@@ -312,7 +317,7 @@ class Run:
         pred, margin = self.worst if (self.scenario in ("removal", "game") and self.worst) else (None, None)
         return dict(id=self.id, seed=self.seed, scenario=self.scenario, version=VERSIONS[self.scenario],
                     layers=int(self.p.v("layers")), friction=self.p.v("friction"),
-                    block_mass_g=1000 * self.p.v("block_mass"), thickness_tol_mm=1000 * self.tol,
+                    block_mass_g=1000 * self.p.v("block_mass"), thickness_tol_mm=1000 * self.tol, friction_sd=self.mu_sd,
                     scenario_params=json.dumps(self.params, default=list),
                     outcome=outcome, blocks_fell=fell,
                     collapsed=int(collapsed), onset_s=self.onset, fraction_down=frac,
@@ -347,7 +352,7 @@ def connect(out):
     db = sqlite3.connect(out / "runs.sqlite")
     db.executescript(SCHEMA)
     have = {c[1] for c in db.execute("PRAGMA table_info(runs)")}
-    for col, typ in (("timestep", "REAL"), ("unstable", "INTEGER")):   # databases made before these existed
+    for col, typ in (("timestep", "REAL"), ("unstable", "INTEGER"), ("friction_sd", "REAL")):   # databases made before these existed
         if col not in have:
             db.execute(f"ALTER TABLE runs ADD COLUMN {col} {typ}")
     db.commit()
@@ -424,14 +429,16 @@ def summary(out=DEFAULT_OUT):
             "AVG(onset_s) FROM runs GROUP BY scenario ORDER BY scenario"):
         print(f"{sc:10s} {n:5d} {st:6d} {pa:8d} {co:10d} {onset or 0:13.2f}")
     print("\nStatic-equilibrium load-path prediction vs simulation (removal + game runs).")
-    print("The prediction assumes identical blocks; real blocks differ by tenths of a mm.")
-    for label, cond in (("identical blocks", "thickness_tol_mm = 0"), ("blocks vary +/-0.2-0.4 mm", "thickness_tol_mm > 0")):
+    print("Geometry is identical in every run; friction is uniform or varies per block (sd 0.04).")
+    for label, cond in (("uniform friction", "COALESCE(friction_sd, 0) = 0 AND thickness_tol_mm = 0"),
+                        ("per-block friction", "friction_sd > 0 AND thickness_tol_mm = 0"),
+                        ("varied thickness (old, invalid)", "thickness_tol_mm > 0")):
         rows = db.execute(f"SELECT predicted_stable, outcome FROM runs WHERE predicted_stable IS NOT NULL AND {cond}").fetchall()
         if not rows:
             continue
         fell = lambda o: o != "stood"
         agree = sum((p == 1) != fell(o) for p, o in rows)
-        print(f"  {label:26s} {agree}/{len(rows)} agree ({agree / len(rows):.0%})   "
+        print(f"  {label:32s} {agree}/{len(rows)} agree ({agree / len(rows):.0%})   "
               f"pred fall+fell {sum(p == 0 and fell(o) for p, o in rows)}, "
               f"pred stand+stood {sum(p == 1 and not fell(o) for p, o in rows)}, "
               f"pred stand but fell {sum(p == 1 and fell(o) for p, o in rows)}, "

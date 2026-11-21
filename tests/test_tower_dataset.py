@@ -43,3 +43,17 @@ def test_poke_is_a_finger_and_stays_stable():
     rec = td._job((2, 0, None))                                    # run 2 is a "poke" run
     assert rec["scenario"] == "poke" and rec["version"] == td.VERSIONS["poke"]
     assert rec["unstable"] == 0 and rec["max_top_disp_mm"] < 200
+
+
+def test_intact_towers_come_to_rest():
+    """Regression: towers of varied-thickness blocks used to rock and walk apart with
+    nothing removed. Every dataset tower, untouched, must settle and stay put."""
+    seen = set()
+    for i in range(12):
+        r = td.Run(i)
+        if bool(r.mu_sd) in seen:
+            continue
+        seen.add(bool(r.mu_sd))
+        r.tower.run(1.0); ref = r.tower.pos(); r.tower.run(3.0)
+        assert r.tol == 0 and r.tower.max_drift_mm(ref) < 1.0, (i, r.mu_sd, r.tower.max_drift_mm(ref))
+    assert seen == {True, False}

@@ -81,6 +81,10 @@ its source. Replace `estimate:` with `measured:` as your numbers come in.
 
 ## Known limitations
 
+- **Varied block thickness is not stable in MuJoCo.** `Tower(thickness=...)` still
+  exists, but towers of uneven blocks rock and walk apart under the stiff contacts
+  (details in `docs/TOWER_DATASET.md`). The dataset uses identical geometry.
+
 - **Creep:** under a sustained sideways load below the friction limit, MuJoCo's
   soft friction lets blocks slide slowly (0.28 mm/s at 50% of the limit). An
   upright tower has no sideways load, so it does not creep; neighbours of a
