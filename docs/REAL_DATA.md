@@ -12,7 +12,7 @@ Each episode = one extraction attempt, recorded as:
 | Overhead frames | fixed camera, calibrated to the robot frame | tower state (lean, block poses) by classical CV; V-JEPA input |
 | Wrist frames | camera on the claw | close view of the block being pulled; V-JEPA input |
 | Joint positions + goal positions | `so101_telemetry.py` (read-only) | where the arm was, what it was told |
-| Servo current | same | wiggle / pull resistance = how tight the block is |
+| Servo current | same | pull resistance, **only when the arm does the pulling** (see step 5) |
 | `r` / `c` key presses | operator | removal time, collapse-onset time |
 
 Nothing here trains a model yet. Training starts once there are enough labelled
@@ -33,10 +33,13 @@ calibration; if it is bumped, redo step 2. Use fixed lighting.
 
 ## 2. Calibrate
 
+Calibrate at **1280×720**, the resolution the recorder uses (`CameraStreams`). Intrinsics
+from a different resolution do not apply to the episode frames.
+
 Overhead (intrinsics + where it is in the robot frame):
 
 ```bash
-python twin/jenga_vision.py capture --camera 0 --out data/calibration/overhead_images
+python twin/jenga_vision.py capture --camera 0 --width 1280 --height 720 --out data/calibration/overhead_images
 python twin/jenga_vision.py intrinsics --images data/calibration/overhead_images \
        --square-mm <measured> --out data/calibration/overhead_intrinsics.json
 python twin/jenga_vision.py extrinsics --camera 0 --intrinsics data/calibration/overhead_intrinsics.json \
@@ -48,7 +51,7 @@ python twin/jenga_vision.py tower --camera 0 --intrinsics data/calibration/overh
 Wrist (intrinsics only, for now):
 
 ```bash
-python twin/jenga_vision.py capture --camera 2 --out data/calibration/wrist_images
+python twin/jenga_vision.py capture --camera 2 --width 1280 --height 720 --out data/calibration/wrist_images
 python twin/jenga_vision.py intrinsics --images data/calibration/wrist_images \
        --square-mm <measured> --out data/calibration/wrist_intrinsics.json
 ```
@@ -97,8 +100,13 @@ Discard episodes it marks as not ok.
 
 Until the scripted controller runs on the arm, extract blocks **by hand**, with
 the arm's torque off and the claw moved by hand to face the block. The wrist
-camera then sees what it will see later, and the servo current still records
-contact. One extraction per episode.
+camera then sees what it will see later. One extraction per episode.
+
+These are **visual + kinematics episodes only**. With torque off the servos supply
+no force, so `current_ma` in them does not measure block resistance and must not
+be used as a tightness label. Tightness ground truth for now is your own note of
+which blocks were tight or loose (write it in the episode, e.g. with the `note`
+field, or a per-session text file). Force data comes once the arm pulls the blocks.
 
 | `--scenario` | What to do | Count (min) |
 |---|---|---|
