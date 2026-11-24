@@ -54,6 +54,8 @@ DEFAULT_MAP = {
     "gripper": ("buttons", (5, 4), +1.0),          # RB open, LB close
 }
 BUTTONS = dict(start=7, freeze=1, limp=6)
+SHORT = dict(shoulder_pan="pan", shoulder_lift="lift", elbow_flex="elbow",
+             wrist_flex="wflex", wrist_roll="wroll", gripper="claw")
 
 
 def load_limits(robot_id, margin):
@@ -117,6 +119,7 @@ class Teleop:
         pos = _sync_read(bus, "Present_Position")
         self.goal = {n: float(pos[n]) for n in JOINT_NAMES}     # start where the arm is: no jump
         self.armed, self.seq, self.writes = False, 0, 0
+        self.prev = {k: False for k in BUTTONS}       # buttons act on the press, not while held
 
     def clamp(self, n, v):
         lo, hi = self.limits[n]
@@ -148,11 +151,14 @@ class Teleop:
         print("\nLIMP (torque off)")
 
     def step(self, state, dt):
-        if pressed(state, "freeze"):
+        now = {k: pressed(state, k) for k in BUTTONS}
+        edge = {k: now[k] and not self.prev[k] for k in BUTTONS}
+        self.prev = now
+        if edge["freeze"]:
             self.freeze()
-        elif pressed(state, "limp"):
+        elif edge["limp"]:
             self.limp()
-        elif pressed(state, "start") and not self.armed:
+        elif edge["start"] and not self.armed:
             self.arm()
         cmd = command(state, self.mapping, self.deadzone)
         if self.armed and any(cmd.values()):
@@ -225,7 +231,7 @@ def main(argv=None, pad=None, bus=None):
                 print(f"\nbus error (continuing): {exc}")
                 continue
             if t.seq % max(1, int(a.hz / 2)) == 0:
-                active = " ".join(f"{n[:6]}{v:+.1f}" for n, v in cmd.items() if v)
+                active = " ".join(f"{SHORT[n]}{v:+.1f}" for n, v in cmd.items() if abs(v) >= .05)
                 print(f"\r{'ARMED' if t.armed else 'disarmed'}{' (dry)' if a.dry_run else ''}  {active}".ljust(100),
                       end="", flush=True)
             time.sleep(max(0.0, 1 / a.hz - (time.monotonic() - tick)))

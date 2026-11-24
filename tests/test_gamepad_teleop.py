@@ -90,3 +90,15 @@ def test_publishes_telemetry_the_recorder_accepts(tmp_path):
     t.publish(); t.publish()
     v = TelemetryFile(tmp_path / "t.json", JOINT_NAMES, gt.UNITS, "c").read()
     assert v["sequence_id"] == 1 and len(v["current_ma"]) == 6 and v["source"] == "gamepad_teleop"
+
+
+def test_held_button_acts_once(tmp_path):
+    bus, t = make(tmp_path)
+    t.step(pad(buttons=[gt.BUTTONS["start"]]), .1)
+    t.step(pad(buttons=[gt.BUTTONS["freeze"]]), .1)
+    n = len(bus.writes)
+    for _ in range(5):
+        t.step(pad(buttons=[gt.BUTTONS["freeze"]]), .1)          # still held: no repeat
+    assert len(bus.writes) == n
+    t.step(pad(buttons=[gt.BUTTONS["start"]]), .1)               # new press re-arms
+    assert t.armed
