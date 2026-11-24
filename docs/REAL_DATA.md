@@ -75,6 +75,24 @@ Read-only: it never writes to the servos, so it does not move the arm or change
 torque. With torque off you can move the arm by hand. Test without the arm:
 `--mock`.
 
+### 3b. Or drive the arm with a gamepad (instead of step 3)
+
+With a gamepad the servos do the pulling, so `current_ma` becomes a real measure of
+how hard the block resists. `gamepad_teleop.py` both drives the arm and publishes the
+same telemetry file, so do **not** run `so101_telemetry.py` at the same time.
+
+```bash
+pip install pygame
+python scripts/tools/gamepad_teleop.py --show-inputs          # check your pad's axis/button numbers
+python scripts/tools/gamepad_teleop.py --port /dev/ttyACM0 --calibration-version jenga_follower --dry-run
+python scripts/tools/gamepad_teleop.py --port /dev/ttyACM0 --calibration-version jenga_follower --speed 150
+```
+
+8BitDo in X-input mode (Xbox layout). Left stick: shoulder pan / lift. Right stick:
+elbow / wrist roll. D-pad up/down: wrist flex. RB/LB: claw open/close. START arms,
+B freezes (arm holds still), BACK goes limp (hold the arm first). Speed is capped and
+every joint stays inside its calibrated range.
+
 ## 4. Record an episode (terminal 2)
 
 ```bash

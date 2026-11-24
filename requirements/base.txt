@@ -14,3 +14,4 @@ dataclasses-json>=0.6
 
 # Testing
 pytest>=8.0
+pygame>=2.5      # gamepad teleop (scripts/tools/gamepad_teleop.py)
