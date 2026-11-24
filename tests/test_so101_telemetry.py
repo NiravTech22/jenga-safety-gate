@@ -24,3 +24,20 @@ def test_mock_bridge_publishes_valid_telemetry(tmp_path):
 def test_bridge_never_writes_registers():
     src = (ROOT / "scripts/tools/so101_telemetry.py").read_text()
     assert ".write(" not in src and "disable_torque=False" in src
+
+
+def test_bridge_survives_bus_errors(tmp_path, monkeypatch):
+    calls = {"n": 0}
+    real = tel.MockBus.sync_read
+
+    def flaky(self, name, normalize=False):
+        calls["n"] += 1
+        if calls["n"] % 4 == 0:
+            raise RuntimeError("no status packet")
+        return real(self, name, normalize)
+
+    monkeypatch.setattr(tel.MockBus, "sync_read", flaky)
+    out = tmp_path / "arm.json"
+    assert tel.main(["--mock", "--out", str(out), "--seconds", "0.3", "--hz", "50"]) == 0
+    v = TelemetryFile(out, JOINT_NAMES, tel.UNITS, "so101-raw-ticks").read()
+    assert v["sequence_id"] > 3
