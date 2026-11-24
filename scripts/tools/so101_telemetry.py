@@ -64,10 +64,17 @@ class MockBus:
         pass
 
 
+def _sync_read(bus, reg):
+    try:
+        return bus.sync_read(reg, normalize=False, num_retry=2)
+    except TypeError:                      # older LeRobot without num_retry
+        return bus.sync_read(reg, normalize=False)
+
+
 def read_once(bus):
     out = {}
     for reg in ("Present_Position", "Goal_Position", "Present_Current"):
-        vals = bus.sync_read(reg, normalize=False)
+        vals = _sync_read(bus, reg)
         out[reg] = ([float(vals[n]) for n in JOINT_NAMES], time.monotonic())
     return out
 
@@ -87,10 +94,20 @@ def main(argv=None):
     bus = MockBus() if a.mock else open_bus(a.port)
     print(f"publishing {'MOCK ' if a.mock else ''}telemetry to {a.out} at {a.hz:g} Hz; Ctrl-C to stop")
     seq, t_end = 0, time.monotonic() + a.seconds
+    failures, last_ok = 0, time.monotonic()
     try:
         while time.monotonic() < t_end:
             tick = time.monotonic()
-            r = read_once(bus)
+            try:
+                r = read_once(bus)
+            except Exception as exc:       # a missed servo reply must not end the session
+                failures += 1
+                if time.monotonic() - last_ok > 2.0:
+                    print(f"\nWARNING: no good reading for {time.monotonic() - last_ok:.1f} s "
+                          f"({failures} failed reads so far; last error: {exc}). Check power and cables.")
+                time.sleep(0.005)
+                continue
+            last_ok = time.monotonic()
             pos, t_pos = r["Present_Position"]
             goal, t_goal = r["Goal_Position"]
             cur, _ = r["Present_Current"]
@@ -99,12 +116,14 @@ def main(argv=None):
                               calibration_version=a.calibration_version,
                               extra=dict(current_ma=[c * CURRENT_MA_PER_UNIT for c in cur], mock=bool(a.mock)))
             seq += 1
+            if seq % max(1, int(a.hz * 10)) == 0:
+                print(f"\r{seq} samples, {failures} failed reads", end="", flush=True)
             time.sleep(max(0.0, 1 / a.hz - (time.monotonic() - tick)))
     except KeyboardInterrupt:
         pass
     finally:
         bus.disconnect(disable_torque=False)     # leave torque exactly as it was
-    print(f"stopped after {seq} samples")
+    print(f"\nstopped after {seq} samples, {failures} failed reads")
     return 0
 
 
