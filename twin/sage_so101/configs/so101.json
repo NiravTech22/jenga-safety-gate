@@ -1,0 +1,77 @@
+{
+  "mjcf": "../models/so101_custom_claw_physics.xml",
+  "physics_dt": 0.002,
+  "control_hz": 50,
+  "joints": [
+    {
+      "name": "shoulder_pan",
+      "mjcf_joint": "shoulder_pan",
+      "sign": 1,
+      "offset_rad": 0.0,
+      "center": 0.0,
+      "amp": 0.35,
+      "lo": -1.5,
+      "hi": 1.5
+    },
+    {
+      "name": "shoulder_lift",
+      "mjcf_joint": "shoulder_lift",
+      "sign": 1,
+      "offset_rad": 0.0,
+      "center": 0.0,
+      "amp": 0.3,
+      "lo": -1.5,
+      "hi": 1.5
+    },
+    {
+      "name": "elbow_flex",
+      "mjcf_joint": "elbow_flex",
+      "sign": 1,
+      "offset_rad": 0.0,
+      "center": 0.0,
+      "amp": 0.3,
+      "lo": -1.5,
+      "hi": 1.5
+    },
+    {
+      "name": "wrist_flex",
+      "mjcf_joint": "wrist_flex",
+      "sign": 1,
+      "offset_rad": 0.0,
+      "center": 0.0,
+      "amp": 0.35,
+      "lo": -1.5,
+      "hi": 1.5
+    },
+    {
+      "name": "wrist_roll",
+      "mjcf_joint": "wrist_roll",
+      "sign": 1,
+      "offset_rad": 0.0,
+      "center": 0.0,
+      "amp": 0.5,
+      "lo": -2.5,
+      "hi": 2.5
+    }
+  ],
+  "init_params": {
+    "kp": 12.0,
+    "kd": 0.4,
+    "tau_max": 2.0,
+    "armature": 0.01,
+    "damping": 0.05,
+    "frictionloss": 0.02,
+    "backlash": 0.0,
+    "delay": 0.02
+  },
+  "baseline_params": {
+    "kp": 998.22,
+    "kd": 2.731,
+    "tau_max": 3.35,
+    "armature": 0.028,
+    "damping": 0.6,
+    "frictionloss": 0.052,
+    "backlash": 0.0,
+    "delay": 0.0
+  }
+}
