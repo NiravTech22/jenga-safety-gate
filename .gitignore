@@ -44,3 +44,5 @@ MUJOCO_LOG.TXT
 
 # Generated tower-run database (twin/tower_dataset.py)
 data/tower_runs/
+__pycache__/
+twin/sage_so101/output*/
