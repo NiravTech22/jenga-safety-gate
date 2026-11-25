@@ -132,6 +132,7 @@ class Teleop:
         if not self.dry:
             self.bus.sync_write("Goal_Position", {n: int(round(v)) for n, v in self.goal.items()}, normalize=False)
             self.bus.enable_torque()
+        self.limp_done = False                    # torque is on again: a later BACK must act
         self.armed = True
         print("\nARMED (holding present pose)")
 
@@ -161,11 +162,11 @@ class Teleop:
         self.prev = now
         # Safety buttons act every tick they are held (a failed bus call is retried); they only
         # print on the press. START arms on the press only.
+        if edge["limp"]:
+            self.limp_done = False                # every BACK press needs a fresh torque-off
         if now["freeze"]:
             self.freeze(announce=edge["freeze"])
         elif now["limp"]:
-            if edge["limp"]:
-                self.limp_done = False
             if not self.limp_done:
                 self.limp(announce=edge["limp"])
             else:

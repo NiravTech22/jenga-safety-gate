@@ -147,3 +147,29 @@ Both worlds are simulations from the same physics engine, so the gate's model
 is better matched to its "reality" than it will be to wood. The numbers below
 show that the observation-conditioned gate works as designed in simulation,
 not that it will on the physical tower.
+
+## Live twin of the real arm (`twin/arm_twin.py`)
+
+`mirror` makes the MuJoCo arm follow the real one, from the telemetry file that
+`scripts/tools/gamepad_teleop.py` publishes (it opens no serial port, so it runs
+next to the teleop). It prints every joint angle and the claw tip position in the
+arm base frame, the same frame as the overhead camera calibration. `sim` lets the
+gamepad drive the simulated arm alone, with the same controls, limits and
+telemetry.
+
+```bash
+python scripts/tools/gamepad_teleop.py --port /dev/ttyACM0 --calibration-version jenga_follower   # terminal 1
+python twin/arm_twin.py mirror                                                                    # terminal 2
+python twin/arm_twin.py sim          # no hardware: gamepad drives the model
+```
+
+Ticks map to model angles as `q = sign * (ticks - zero_tick) * 2*pi/4096`
+(`data/calibration/joint_map.json`). Defaults: zero_tick 2048 (LeRobot's middle
+of range), sign +1. Line the model up with the real arm once:
+
+1. `ref` shows the model's zero pose. Drive the real arm into the same pose, `zero`, `ref` again.
+2. Move one joint at a time. If the model moves the opposite way, `flip <joint>`.
+3. Fine-tune with `nudge <joint> <deg>`; claw: `claw open` / `claw closed` at its two ends.
+4. `save`. Re-do after any `lerobot-calibrate`.
+
+Note: in the model, positive `shoulder_pan` turns clockwise seen from above.
