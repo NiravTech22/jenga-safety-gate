@@ -12,7 +12,7 @@
 
 Joint map (data/calibration/joint_map.json): servo ticks -> model joint angle
     q = sign * (ticks - zero_tick) * 2*pi / 4096           (4096 ticks per turn)
-    claw: ticks between closed_tick and open_tick -> slide 0 .. 0.03 m
+    claw: closed_tick -> slide 0.03 m (closed), open_tick -> 0 (open)
 LeRobot calibration puts the middle of each joint's range at tick ~2048 and the SO-101
 model's zero pose is that middle pose, so the defaults are zero_tick 2048, sign +1.
 Check each joint with `ref` and fix any that disagree.
@@ -51,7 +51,7 @@ SCENE = TWIN / "models/scene_custom_claw_physics.xml"
 MAP_PATH = REPO / "data/calibration/joint_map.json"
 HINGES = [n for n in JOINT_NAMES if n != "gripper"]
 TICKS = 4096
-CLAW_OPEN_M = 0.03
+CLAW_SLIDE_M = 0.03          # model gripper slide: 0 = open (88 mm pad gap), 0.03 = closed (28 mm)
 
 
 # ------------------------------------------------------------------ joint map
@@ -81,16 +81,17 @@ class JointMap:
         Path(path).write_text(json.dumps(self.to_dict(), indent=2) + "\n")
 
     def q(self, name, ticks):
-        if name == "gripper":
+        if name == "gripper":                 # model slide: 0 = fully open, 0.03 m = closed
             c, o = self.claw["closed_tick"], self.claw["open_tick"]
-            return float(np.clip((ticks - c) / (o - c), 0, 1) * CLAW_OPEN_M) if o != c else 0.0
+            opening = float(np.clip((ticks - c) / (o - c), 0, 1)) if o != c else 0.0
+            return (1.0 - opening) * CLAW_SLIDE_M
         v = self.j[name]
         return v["sign"] * (ticks - v["zero_tick"]) * 2 * math.pi / TICKS
 
     def ticks(self, name, q):
         if name == "gripper":
             c, o = self.claw["closed_tick"], self.claw["open_tick"]
-            return c + float(np.clip(q / CLAW_OPEN_M, 0, 1)) * (o - c)
+            return c + (1.0 - float(np.clip(q / CLAW_SLIDE_M, 0, 1))) * (o - c)
         v = self.j[name]
         return v["zero_tick"] + v["sign"] * q * TICKS / (2 * math.pi)
 
@@ -108,7 +109,7 @@ class Arm:
         self.qadr = {n: int(self.m.jnt_qposadr[self.m.joint(n).id]) for n in JOINT_NAMES}
         self.mimic = int(self.m.jnt_qposadr[self.m.joint("gripper_mimic").id])
         self.act = {n: self.m.actuator(n).id for n in JOINT_NAMES}
-        self.tip = self.m.site("gripperframe").id
+        self.pads = (self.m.site("pad_marker_finger_left").id, self.m.site("pad_marker_finger_right").id)
         self.base = self.m.site("baseframe").id
         mujoco.mj_forward(self.m, self.d)
 
@@ -125,10 +126,14 @@ class Arm:
     def get_q(self):
         return {n: float(self.d.qpos[self.qadr[n]]) for n in JOINT_NAMES}
 
+    def tip_world(self):
+        """Custom claw grasp point: midway between the two finger pads (as twin/so101_pickplace.py)."""
+        return (self.d.site_xpos[self.pads[0]] + self.d.site_xpos[self.pads[1]]) / 2
+
     def tip_xyz(self):
-        """Claw tip in the arm base frame (metres)."""
+        """Claw grasp point in the arm base frame (metres)."""
         R = self.d.site_xmat[self.base].reshape(3, 3)
-        return R.T @ (self.d.site_xpos[self.tip] - self.d.site_xpos[self.base])
+        return R.T @ (self.tip_world() - self.d.site_xpos[self.base])
 
     def joint_ticks_limits(self, jm, margin=40):
         """Model joint ranges as tick limits for the teleop clamp."""
@@ -149,8 +154,8 @@ def status_line(arm, ticks=None):
     short = dict(shoulder_pan="pan", shoulder_lift="lift", elbow_flex="elbow", wrist_flex="wflex", wrist_roll="wroll")
     ang = " ".join(f"{short[n]}:{math.degrees(q[n]):+6.1f}" for n in HINGES)
     x, y, z = arm.tip_xyz()
-    claw = q["gripper"] / CLAW_OPEN_M * 100
-    return f"{ang} claw:{claw:3.0f}%  tip x={x*1000:6.1f} y={y*1000:6.1f} z={z*1000:6.1f} mm"
+    claw = (1 - q["gripper"] / CLAW_SLIDE_M) * 100     # % open
+    return f"{ang} claw:{claw:3.0f}% open  tip x={x*1000:6.1f} y={y*1000:6.1f} z={z*1000:6.1f} mm"
 
 
 # ------------------------------------------------------------------ mirror
@@ -225,7 +230,9 @@ class SimBus:
     """Looks like the LeRobot bus to gamepad_teleop.Teleop, backed by the MuJoCo arm."""
 
     def __init__(self, arm, jm):
-        self.arm, self.jm, self.torque = arm, jm, False
+        self.arm, self.jm = arm, jm
+        self.gain = arm.m.actuator_gainprm.copy(); self.bias = arm.m.actuator_biasprm.copy()
+        self.disable_torque()
 
     def sync_read(self, reg, normalize=False):
         q = self.arm.get_q()
@@ -245,14 +252,14 @@ class SimBus:
 
     def enable_torque(self):
         self.torque = True
+        self.arm.m.actuator_gainprm[:] = self.gain; self.arm.m.actuator_biasprm[:] = self.bias
 
     def disable_torque(self):
+        """Torque off like the real servos: actuators produce no force at all."""
         self.torque = False
+        self.arm.m.actuator_gainprm[:] = 0; self.arm.m.actuator_biasprm[:] = 0
 
     def step(self, seconds):
-        if not self.torque:                          # limp: actuators follow the arm (no holding force)
-            for n in JOINT_NAMES:
-                self.arm.d.ctrl[self.arm.act[n]] = self.arm.d.qpos[self.arm.qadr[n]]
         for _ in range(max(1, round(seconds / self.arm.m.opt.timestep))):
             mujoco.mj_step(self.arm.m, self.arm.d)
 
