@@ -139,3 +139,15 @@ def test_failed_limp_is_retried_while_held(tmp_path):
     assert bus.torque is False and calls["n"] == 2 and not t.armed
     t.step(pad(buttons=[gt.BUTTONS["limp"]]), .1)                               # done: no more calls
     assert calls["n"] == 2
+
+
+def test_limp_still_acts_after_b_and_back_pressed_together(tmp_path):
+    bus, t = make(tmp_path)
+    L, B, S = gt.BUTTONS["limp"], gt.BUTTONS["freeze"], gt.BUTTONS["start"]
+    t.step(pad(buttons=[S]), .1); t.step(pad(), .1)
+    t.step(pad(buttons=[L]), .1); t.step(pad(), .1)          # limp once
+    t.step(pad(buttons=[S]), .1); t.step(pad(), .1)          # re-arm: torque on
+    assert bus.torque is True
+    t.step(pad(buttons=[B, L]), .1)                          # both together: freeze wins
+    t.step(pad(buttons=[L]), .1)                             # release B, keep BACK
+    assert bus.torque is False
