@@ -90,3 +90,52 @@ def test_publishes_telemetry_the_recorder_accepts(tmp_path):
     t.publish(); t.publish()
     v = TelemetryFile(tmp_path / "t.json", JOINT_NAMES, gt.UNITS, "c").read()
     assert v["sequence_id"] == 1 and len(v["current_ma"]) == 6 and v["source"] == "gamepad_teleop"
+
+
+def test_held_button_acts_once(tmp_path):
+    bus, t = make(tmp_path)
+    t.step(pad(buttons=[gt.BUTTONS["start"]]), .1)
+    t.step(pad(buttons=[gt.BUTTONS["freeze"]]), .1)
+    n = len(bus.writes)
+    for _ in range(5):
+        t.step(pad(buttons=[gt.BUTTONS["freeze"]]), .1)          # still held: no repeat
+    assert len(bus.writes) == n
+    t.step(pad(buttons=[gt.BUTTONS["start"]]), .1)               # new press re-arms
+    assert t.armed
+
+
+def test_freeze_disarms_even_if_the_bus_fails(tmp_path):
+    bus, t = make(tmp_path)
+    t.step(pad(buttons=[gt.BUTTONS["start"]]), .1)
+    real = bus.sync_read
+    bus.sync_read = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("no status packet"))
+    try:
+        t.step(pad(buttons=[gt.BUTTONS["freeze"]]), .1)
+    except RuntimeError:
+        pass                                        # main() logs and continues
+    bus.sync_read = real
+    n = len(bus.writes)
+    t.step(pad(axes=(1, 0, 0, 0, 0, 0), buttons=[gt.BUTTONS["freeze"]]), .1)   # B still held + stick
+    t.step(pad(axes=(1, 0, 0, 0, 0, 0)), .1)                                    # B released + stick
+    assert not t.armed and len(bus.writes) == n
+
+
+def test_failed_limp_is_retried_while_held(tmp_path):
+    bus, t = make(tmp_path)
+    t.step(pad(buttons=[gt.BUTTONS["start"]]), .1)
+    calls = {"n": 0}
+
+    def flaky():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("no status packet")
+        bus.torque = False
+    bus.disable_torque = flaky
+    try:
+        t.step(pad(buttons=[gt.BUTTONS["limp"]]), .1)
+    except RuntimeError:
+        pass
+    t.step(pad(buttons=[gt.BUTTONS["limp"]]), .1)                               # still held: retry
+    assert bus.torque is False and calls["n"] == 2 and not t.armed
+    t.step(pad(buttons=[gt.BUTTONS["limp"]]), .1)                               # done: no more calls
+    assert calls["n"] == 2

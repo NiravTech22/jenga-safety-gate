@@ -54,6 +54,8 @@ DEFAULT_MAP = {
     "gripper": ("buttons", (5, 4), +1.0),          # RB open, LB close
 }
 BUTTONS = dict(start=7, freeze=1, limp=6)
+SHORT = dict(shoulder_pan="pan", shoulder_lift="lift", elbow_flex="elbow",
+             wrist_flex="wflex", wrist_roll="wroll", gripper="claw")
 
 
 def load_limits(robot_id, margin):
@@ -117,6 +119,8 @@ class Teleop:
         pos = _sync_read(bus, "Present_Position")
         self.goal = {n: float(pos[n]) for n in JOINT_NAMES}     # start where the arm is: no jump
         self.armed, self.seq, self.writes = False, 0, 0
+        self.prev = {k: False for k in BUTTONS}       # for press edges
+        self.limp_done = False
 
     def clamp(self, n, v):
         lo, hi = self.limits[n]
@@ -131,28 +135,42 @@ class Teleop:
         self.armed = True
         print("\nARMED (holding present pose)")
 
-    def freeze(self):
-        if self.armed:
+    def freeze(self, announce=True):
+        """Disarm FIRST, so no further motion is sent even if the bus calls below fail."""
+        was_armed, self.armed = self.armed, False
+        if was_armed:
             pos = _sync_read(self.bus, "Present_Position")
             self.goal = {n: float(pos[n]) for n in JOINT_NAMES}
             if not self.dry:
                 self.bus.sync_write("Goal_Position", {n: int(round(v)) for n, v in self.goal.items()},
                                     normalize=False)
-        self.armed = False
-        print("\nFROZEN (disarmed; arm holds its pose)")
+        if announce:
+            print("\nFROZEN (disarmed; arm holds its pose)")
 
-    def limp(self):
+    def limp(self, announce=True):
         self.armed = False
         if not self.dry:
-            self.bus.disable_torque()
-        print("\nLIMP (torque off)")
+            self.bus.disable_torque()          # raises on a bus error; retried while BACK is held
+        self.limp_done = True
+        if announce:
+            print("\nLIMP (torque off)")
 
     def step(self, state, dt):
-        if pressed(state, "freeze"):
-            self.freeze()
-        elif pressed(state, "limp"):
-            self.limp()
-        elif pressed(state, "start") and not self.armed:
+        now = {k: pressed(state, k) for k in BUTTONS}
+        edge = {k: now[k] and not self.prev[k] for k in BUTTONS}
+        self.prev = now
+        # Safety buttons act every tick they are held (a failed bus call is retried); they only
+        # print on the press. START arms on the press only.
+        if now["freeze"]:
+            self.freeze(announce=edge["freeze"])
+        elif now["limp"]:
+            if edge["limp"]:
+                self.limp_done = False
+            if not self.limp_done:
+                self.limp(announce=edge["limp"])
+            else:
+                self.armed = False
+        elif edge["start"] and not self.armed:
             self.arm()
         cmd = command(state, self.mapping, self.deadzone)
         if self.armed and any(cmd.values()):
@@ -225,7 +243,7 @@ def main(argv=None, pad=None, bus=None):
                 print(f"\nbus error (continuing): {exc}")
                 continue
             if t.seq % max(1, int(a.hz / 2)) == 0:
-                active = " ".join(f"{n[:6]}{v:+.1f}" for n, v in cmd.items() if v)
+                active = " ".join(f"{SHORT[n]}{v:+.1f}" for n, v in cmd.items() if abs(v) >= .05)
                 print(f"\r{'ARMED' if t.armed else 'disarmed'}{' (dry)' if a.dry_run else ''}  {active}".ljust(100),
                       end="", flush=True)
             time.sleep(max(0.0, 1 / a.hz - (time.monotonic() - tick)))
