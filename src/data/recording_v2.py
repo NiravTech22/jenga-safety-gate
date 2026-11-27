@@ -106,6 +106,9 @@ def load_episode(path):
     return data
 
 
+MAX_REPEAT_SHARE = 0.05   # a few duplicated samples are harmless; many mean a stalled source
+
+
 def inspect_episode(path):
     try:
         return _inspect_episode(path)
@@ -124,7 +127,7 @@ def _inspect_episode(path):
         issues.append("timestep count mismatch")
     if meta.get("status") == "interrupted":
         warnings.append("interrupted run")
-    previous, prev_t = {}, -float("inf")
+    previous, prev_t, repeats = {}, -float("inf"), {}
     if data["schema_version"] == 1:
         warnings.append("legacy side camera; per-camera timing and dropped frames unknown")
     for i, row in enumerate(rows):
@@ -151,8 +154,10 @@ def _inspect_episode(path):
             sequence = telemetry["sequence_id"]
             if not isinstance(sequence, int) or sequence < 0:
                 problem("invalid telemetry sequence")
-            if sequence <= previous.get("telemetry", -1):
-                problem("repeated/reversed telemetry sequence")
+            if sequence < previous.get("telemetry", -1):
+                problem("reversed telemetry sequence")
+            elif sequence == previous.get("telemetry"):
+                repeats["telemetry"] = repeats.get("telemetry", 0) + 1
             previous["telemetry"] = sequence
             stamps = [v["timestamp"] for v in cameras.values() if v]
             if len(stamps) == 2 and abs(stamps[0]-stamps[1]) > meta["max_skew_s"]:
@@ -175,11 +180,19 @@ def _inspect_episode(path):
             prior = previous.get(name)
             dropped.setdefault(name, {"sequence_gaps": 0, "failed_reads": 0})
             if prior is not None:
-                if seq <= prior:
-                    problem(f"repeated/reversed {name} sequence")
+                if seq < prior:
+                    problem(f"reversed {name} sequence")
+                elif seq == prior:                  # same frame sampled twice (30 fps vs 30 fps jitter)
+                    repeats[name] = repeats.get(name, 0) + 1
                 dropped[name]["sequence_gaps"] += max(0, seq-prior-1)
             previous[name] = seq
             dropped[name]["failed_reads"] = max(dropped[name]["failed_reads"], sample["failed_reads"])
+    for name, count in repeats.items():
+        share = count / max(1, len(rows))
+        if share > MAX_REPEAT_SHARE:
+            issues.append(f"{name} repeated on {count} timesteps ({share:.0%}): source too slow or frozen")
+        else:
+            warnings.append(f"{name} repeated on {count} timesteps ({share:.1%})")
     for event in data.get("events", []):
         if not math.isfinite(event["t"]) or event["t"] < 0:
             issues.append("invalid event time")

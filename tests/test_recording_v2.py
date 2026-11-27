@@ -37,7 +37,7 @@ def test_roundtrip_events_and_replay(tmp_path):
     ("skew", "camera skew"), ("future", "stale/future wrist"),
     ("state", "stale/future state"), ("action", "stale/future action"),
     ("count", "count mismatch"), ("nan", "invalid joint_state"),
-    ("path", "unsafe wrist"), ("sequence", "repeated/reversed"),
+    ("path", "unsafe wrist"), ("sequence", "source too slow or frozen"),
 ])
 def test_integrity_faults(tmp_path, fault, expected):
     rec = record(tmp_path)
@@ -133,3 +133,28 @@ def test_malformed_and_empty(tmp_path):
     rec = Recording(tmp_path, backend="synthetic", session_id="s", tower_id="t",
                     calibration_version="c", joint_names=["a"], joint_units="radians")
     assert "empty episode" in inspect_episode(rec.close())["issues"]
+
+
+def _episode_with_repeats(tmp_path, n, repeat_every):
+    rec = Recording(tmp_path, backend="synthetic", session_id="s", tower_id="t",
+                    calibration_version="c", joint_names=["a"]*6, joint_units="radians")
+    seq = 0
+    for i in range(n):
+        now = time.monotonic()
+        if i % repeat_every:
+            seq += 1                                    # else: same frame/telemetry sampled again
+        frames = {k: (np.full((24, 32, 3), 40, np.uint8), now, seq, 0) for k in ("overhead", "wrist")}
+        rec.append(frames, dict(joint_state=[.1]*6, action=[.2]*6, state_timestamp=now,
+                                action_timestamp=now, sequence_id=seq), now)
+        time.sleep(.001)
+    return inspect_episode(rec.close())
+
+
+def test_few_repeated_samples_are_a_warning(tmp_path):
+    r = _episode_with_repeats(tmp_path, 60, repeat_every=30)       # 2 of 60 = 3 %
+    assert r["ok"] and any("overhead repeated" in w for w in r["warnings"])
+
+
+def test_many_repeated_samples_fail(tmp_path):
+    r = _episode_with_repeats(tmp_path, 60, repeat_every=3)        # 20 of 60 = 33 %
+    assert not r["ok"] and any("source too slow or frozen" in i for i in r["issues"])

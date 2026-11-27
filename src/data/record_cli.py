@@ -6,7 +6,8 @@ import cv2
 import numpy as np
 
 from src.data.recording_v2 import Recording, inspect_episode
-from src.hardware.passive import CameraStreams, TelemetryFile, TelemetryWatch, wait_for_live
+from src.hardware.passive import (CameraStreams, TelemetryFile, TelemetryWatch, black_cameras,
+                                  resolve_camera, wait_for_live)
 from src.hardware.kinematics import JOINT_NAMES
 
 
@@ -23,8 +24,8 @@ def main():
     p.add_argument("--operator", default="unknown")
     p.add_argument("--scenario", default="stable_easy")
     p.add_argument("--telemetry")
-    p.add_argument("--overhead", type=int)
-    p.add_argument("--wrist", type=int)
+    p.add_argument("--overhead", help="index, /dev/videoN or /dev/v4l/by-id path (default: the overhead's by-id link)")
+    p.add_argument("--wrist", help="index, /dev/videoN or /dev/v4l/by-id path (default: the wrist's by-id link)")
     p.add_argument("--seconds", type=float, default=30)
     p.add_argument("--fps", type=float, default=15)
     p.add_argument("--max-age", type=float, default=.2)
@@ -33,8 +34,8 @@ def main():
     args = p.parse_args()
     if not np.isfinite(args.seconds) or args.seconds <= 0 or not np.isfinite(args.fps) or args.fps <= 0:
         p.error("seconds and fps must be positive finite values")
-    if args.hardware and (not args.telemetry or args.overhead is None or args.wrist is None):
-        p.error("hardware requires --telemetry, --overhead and --wrist; dummy state is forbidden")
+    if args.hardware and not args.telemetry:
+        p.error("hardware requires --telemetry; dummy state is forbidden")
     source = None
     if args.hardware:
         source = TelemetryFile(args.telemetry, JOINT_NAMES, args.joint_units, args.calibration_version)
@@ -51,7 +52,10 @@ def main():
     watch = TelemetryWatch()
     try:
         if args.hardware:
-            cameras = CameraStreams({"overhead": args.overhead, "wrist": args.wrist})
+            devices = {role: resolve_camera(getattr(args, role), role) for role in ("overhead", "wrist")}
+            rec.data["metadata"]["devices"] = devices
+            print("cameras:", devices)
+            cameras = CameraStreams(devices)
             rec.data["metadata"]["camera_formats"] = cameras.formats
             print("cameras:", cameras.formats)
             deadline = time.monotonic() + 5
@@ -59,6 +63,11 @@ def main():
                 if time.monotonic() >= deadline:
                     raise RuntimeError("both cameras must deliver initial frames within 5 seconds")
                 time.sleep(.01)
+            time.sleep(.5)                     # let auto-exposure settle before judging the picture
+            dark = black_cameras(cameras.snapshot())
+            if dark:
+                raise RuntimeError(f"{', '.join(dark)} camera shows a black picture: wrong device, lens covered, "
+                                   "or exposure not locked (run scripts/tools/lock_cameras.sh)")
         for i in range(max(1, int(args.seconds * args.fps))):
             tick = time.monotonic()
             if args.hardware:

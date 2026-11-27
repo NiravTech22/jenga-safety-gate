@@ -85,6 +85,32 @@ class TelemetryWatch:
         return None
 
 
+# Stable names for Nirav's two cameras. /dev/videoN numbers swap on replug; these by-id
+# links follow the physical camera (2026-11-27: a swap recorded a whole demo with a black overhead).
+CAMERA_IDS = {
+    "overhead": "/dev/v4l/by-id/usb-Jieli_Technology_USB_PHY_2.0-video-index0",
+    "wrist": "/dev/v4l/by-id/usb-Generic_USB_Camera_200901010001-video-index0",
+}
+BLACK_MEAN = 5.0     # mean pixel value below this = no picture (lens covered, exposure far too low)
+
+
+def resolve_camera(value, role):
+    """'2' -> 2 (index); a path (or None -> the role's by-id link) -> its real /dev/videoN."""
+    if value is None:
+        value = CAMERA_IDS[role]
+    if isinstance(value, int) or str(value).isdigit():
+        return int(value)
+    path = Path(value)
+    if not path.exists():
+        raise RuntimeError(f"{role} camera {value} not found (unplugged?); see `ls -l /dev/v4l/by-id/`")
+    return str(path.resolve())
+
+
+def black_cameras(snapshot):
+    """Names of cameras whose current frame has no picture."""
+    return [name for name, sample in snapshot.items() if float(sample[0].mean()) < BLACK_MEAN]
+
+
 class CameraStreams:
     def __init__(self, devices, resolution=(1280, 720), fps=30):
         if set(devices) != {"overhead", "wrist"} or devices["overhead"] == devices["wrist"]:
