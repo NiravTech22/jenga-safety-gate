@@ -270,12 +270,14 @@ class SimBus:
             return {n: self.jm.ticks(n, q[n]) for n in JOINT_NAMES}
         if reg == "Goal_Position":
             return {n: self.jm.ticks(n, float(self.arm.d.ctrl[self.arm.act[n]])) for n in JOINT_NAMES}
-        if reg == "Present_Current":                 # actuator effort, scaled to servo current units
-            f = self.arm.d.actuator_force
-            return {n: abs(float(f[self.arm.act[n]])) / 3.35 * 400 for n in JOINT_NAMES}
-        if reg == "Present_Load":                    # signed effort as 0.1 % of the 3.35 N·m stall torque
-            f = self.arm.d.actuator_force
-            return {n: float(f[self.arm.act[n]]) / 3.35 * 1000 for n in JOINT_NAMES}
+        if reg in ("Present_Current", "Present_Load"):
+            # Effort as a fraction of each actuator's OWN limit: hinges are N·m (±3.35), the claw
+            # slide is N (±30), so one shared divisor would mis-scale the claw ~9x.
+            f, hi = self.arm.d.actuator_force, self.arm.m.actuator_forcerange[:, 1]
+            frac = {n: float(f[self.arm.act[n]]) / float(hi[self.arm.act[n]]) for n in JOINT_NAMES}
+            if reg == "Present_Current":             # ~400 units at stall, unsigned
+                return {n: abs(v) * 400 for n, v in frac.items()}
+            return {n: v * 1000 for n, v in frac.items()}   # 0.1 % of max, signed
         raise KeyError(reg)
 
     def sync_write(self, reg, values, normalize=True):

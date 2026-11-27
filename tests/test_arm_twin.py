@@ -115,3 +115,15 @@ def test_leftover_cube_is_hidden():
     arm = at.Arm()
     g = arm.m.geom("grasp_cube_geom").id
     assert arm.m.geom_rgba[g, 3] == 0 and arm.m.geom_contype[g] == 0
+
+
+def test_sim_load_scales_each_actuator_by_its_own_limit():
+    arm, jm = at.Arm(), at.JointMap()
+    bus = at.SimBus(arm, jm)
+    i_claw, i_elbow = arm.act["gripper"], arm.act["elbow_flex"]
+    arm.d.actuator_force[:] = 0
+    arm.d.actuator_force[i_claw] = 15.0           # half the claw's 30 N limit
+    arm.d.actuator_force[i_elbow] = -3.35         # elbow at full stall, other direction
+    load = bus.sync_read("Present_Load")
+    assert abs(load["gripper"] - 500) < 1e-6 and abs(load["elbow_flex"] + 1000) < 1e-6
+    assert abs(bus.sync_read("Present_Current")["gripper"] - 200) < 1e-6
