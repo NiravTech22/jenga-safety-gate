@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 
 from src.data.recording_v2 import Recording, inspect_episode
-from src.hardware.passive import CameraStreams, TelemetryFile
+from src.hardware.passive import CameraStreams, TelemetryFile, TelemetryWatch, wait_for_live
 from src.hardware.kinematics import JOINT_NAMES
 
 
@@ -39,6 +39,8 @@ def main():
     if args.hardware:
         source = TelemetryFile(args.telemetry, JOINT_NAMES, args.joint_units, args.calibration_version)
         source.read()  # fail before opening cameras if bridge is unavailable
+        wait_for_live(source, max_age=args.max_age)  # ...or present but frozen (teleop not running)
+        print("telemetry live")
     rec = Recording(args.root, backend="hardware" if args.hardware else "synthetic",
         session_id=args.session_id, tower_id=args.tower_id, calibration_version=args.calibration_version,
         joint_names=list(JOINT_NAMES), joint_units=args.joint_units, operator=args.operator,
@@ -46,6 +48,7 @@ def main():
     rec.data["metadata"]["scenario_category"] = args.scenario
     rec.data["metadata"]["devices"] = {"overhead": args.overhead, "wrist": args.wrist}
     cameras, interrupted, reason = None, False, ""
+    watch = TelemetryWatch()
     try:
         if args.hardware:
             cameras = CameraStreams({"overhead": args.overhead, "wrist": args.wrist})
@@ -60,6 +63,9 @@ def main():
             tick = time.monotonic()
             if args.hardware:
                 frames, telemetry = cameras.snapshot(), source.read()
+                warning = watch.check(telemetry)
+                if warning:
+                    print("\n" + warning)
             else:
                 frames = {}
                 for j, name in enumerate(("overhead", "wrist")):

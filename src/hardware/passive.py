@@ -44,6 +44,47 @@ class TelemetryFile:
         return value
 
 
+class TelemetryStale(RuntimeError):
+    pass
+
+
+def wait_for_live(source, timeout=3.0, max_age=0.2, clock=time.monotonic, sleep=time.sleep):
+    """Block until the telemetry file is being updated (sequence advances, fresh timestamp).
+
+    A file that exists but is frozen (teleop/bridge exited) would otherwise be recorded as a
+    whole episode of one repeated pose."""
+    first = source.read()["sequence_id"]
+    deadline = clock() + timeout
+    while clock() < deadline:
+        v = source.read()
+        if v["sequence_id"] != first and 0 <= clock() - v["state_timestamp"] <= max_age:
+            return v
+        sleep(0.02)
+    raise TelemetryStale(f"telemetry {source.path} is not updating (sequence stuck at {first}). "
+                         "Start gamepad_teleop.py (or so101_telemetry.py) first, then the recorder.")
+
+
+class TelemetryWatch:
+    """Track sequence progress during a recording: warn after `warn_s`, stop after `stop_s`."""
+
+    def __init__(self, warn_s=1.0, stop_s=5.0, clock=time.monotonic):
+        self.warn_s, self.stop_s, self.clock = warn_s, stop_s, clock
+        self.last_seq, self.last_change, self.warned = None, clock(), False
+
+    def check(self, telemetry):
+        now = self.clock()
+        if telemetry["sequence_id"] != self.last_seq:
+            self.last_seq, self.last_change, self.warned = telemetry["sequence_id"], now, False
+            return None
+        frozen = now - self.last_change
+        if frozen > self.stop_s:
+            raise TelemetryStale(f"telemetry stopped updating for {frozen:.1f} s; recording ended")
+        if frozen > self.warn_s and not self.warned:
+            self.warned = True
+            return f"WARNING: telemetry frozen for {frozen:.1f} s (teleop stopped or bus errors?)"
+        return None
+
+
 class CameraStreams:
     def __init__(self, devices, resolution=(1280, 720), fps=30):
         if set(devices) != {"overhead", "wrist"} or devices["overhead"] == devices["wrist"]:
