@@ -85,3 +85,33 @@ def test_limp_sim_has_no_actuator_force():
     bus.disable_torque(); bus.step(.5)
     assert abs(arm.d.actuator_force[:5]).max() < 1e-9
     assert abs(arm.get_q()["shoulder_lift"] - held) > 0.02           # gravity takes it, as on the real arm
+
+
+def test_zero_is_the_middle_of_the_lerobot_range(tmp_path):
+    import json
+    cal = {n: dict(id=i + 1, drive_mode=0, homing_offset=0, range_min=lo, range_max=hi)
+           for i, (n, lo, hi) in enumerate([("shoulder_pan", 1328, 2776), ("shoulder_lift", 1552, 3877),
+                                           ("elbow_flex", 269, 2521), ("wrist_flex", 858, 3287),
+                                           ("wrist_roll", 0, 4095), ("gripper", 2042, 3549)])}
+    cal["wrist_flex"]["drive_mode"] = 1
+    p = tmp_path / "jenga_follower.json"; p.write_text(json.dumps(cal))
+    jm = at.JointMap.from_lerobot(p)
+    assert jm.q("shoulder_lift", (1552 + 3877) / 2) == pytest.approx(0)
+    assert jm.q("elbow_flex", 1395) == pytest.approx(0)
+    assert jm.j["wrist_flex"]["sign"] == -1
+    assert jm.claw == {"closed_tick": 2042, "open_tick": 3549}
+    # the old 2048 default was ~58 deg off for this arm's shoulder_lift
+    assert abs(math.degrees(at.JointMap().q("shoulder_lift", 2714.5))) == pytest.approx(58.6, abs=.5)
+
+
+def test_saved_map_wins_over_calibration(tmp_path):
+    import json
+    m = tmp_path / "map.json"; m.write_text(json.dumps({"elbow_flex": {"sign": -1, "zero_tick": 1000}}))
+    cal = tmp_path / "cal.json"; cal.write_text("{}")
+    assert at.JointMap.load(m, cal).j["elbow_flex"]["zero_tick"] == 1000
+
+
+def test_leftover_cube_is_hidden():
+    arm = at.Arm()
+    g = arm.m.geom("grasp_cube_geom").id
+    assert arm.m.geom_rgba[g, 3] == 0 and arm.m.geom_contype[g] == 0

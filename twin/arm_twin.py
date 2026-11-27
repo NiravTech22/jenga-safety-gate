@@ -10,15 +10,17 @@
   sim     The gamepad drives the SIMULATED arm only (no hardware), with the same
           controls, limits and telemetry as gamepad_teleop.py.
 
-Joint map (data/calibration/joint_map.json): servo ticks -> model joint angle
+Joint map: servo ticks -> model joint angle
     q = sign * (ticks - zero_tick) * 2*pi / 4096           (4096 ticks per turn)
     claw: closed_tick -> slide 0.03 m (closed), open_tick -> 0 (open)
-LeRobot calibration puts the middle of each joint's range at tick ~2048 and the SO-101
-model's zero pose is that middle pose, so the defaults are zero_tick 2048, sign +1.
-Check each joint with `ref` and fix any that disagree.
+Default: LeRobot's own convention, read from its calibration file: zero_tick = middle of the
+calibrated range, (range_min + range_max) / 2; sign from drive_mode. The SO-101 model's zero
+pose follows that convention. Fine-tuning is saved to data/calibration/joint_map.json and
+then takes precedence; `--fresh` or `reset` goes back to the calibration.
 
 Mirror commands (type + Enter):
   ref               toggle: show the model's zero pose (put the real arm in it) / live mirror
+  reset             back to LeRobot's calibration convention (drops your tuning until `save`)
   zero [joint]      real arm is in the zero pose: set zero_tick so it reads 0 (all hinge joints, or one)
   flip <joint>      reverse a joint's direction
   nudge <joint> <deg>   shift a joint by a few degrees
@@ -63,15 +65,26 @@ class JointMap:
         self.claw = dict(closed_tick=float(g.get("closed_tick", 2048)), open_tick=float(g.get("open_tick", 3500)))
 
     @classmethod
+    def from_lerobot(cls, lerobot_cal):
+        """LeRobot's own convention (MotorsBus._normalize, DEGREES): angle 0 is the MIDDLE of the
+        calibrated range, (range_min + range_max) / 2, negated when drive_mode is set. The SO-101
+        model's zero pose uses the same convention, so this needs no manual alignment."""
+        cal = json.loads(Path(lerobot_cal).read_text())
+        d = {n: {"sign": -1 if cal[n].get("drive_mode") else 1,
+                 "zero_tick": (cal[n]["range_min"] + cal[n]["range_max"]) / 2} for n in HINGES if n in cal}
+        if "gripper" in cal:
+            d["gripper"] = {"closed_tick": cal["gripper"]["range_min"], "open_tick": cal["gripper"]["range_max"]}
+        return cls(d)
+
+    @classmethod
     def load(cls, path=MAP_PATH, lerobot_cal=None):
+        """A saved map (your fine-tuning) wins; otherwise LeRobot's calibration convention."""
         if Path(path).exists():
             return cls(json.loads(Path(path).read_text()))
-        m = cls()
-        if lerobot_cal and Path(lerobot_cal).exists():           # claw ends from the LeRobot sweep
-            g = json.loads(Path(lerobot_cal).read_text()).get("gripper")
-            if g:
-                m.claw = dict(closed_tick=float(g["range_min"]), open_tick=float(g["range_max"]))
-        return m
+        if lerobot_cal and Path(lerobot_cal).exists():
+            return cls.from_lerobot(lerobot_cal)
+        print("WARNING: no joint map and no LeRobot calibration found; using tick 2048 as zero")
+        return cls()
 
     def to_dict(self):
         return {**{n: dict(v) for n, v in self.j.items()}, "gripper": dict(self.claw)}
@@ -111,6 +124,13 @@ class Arm:
         self.act = {n: self.m.actuator(n).id for n in JOINT_NAMES}
         self.pads = (self.m.site("pad_marker_finger_left").id, self.m.site("pad_marker_finger_right").id)
         self.base = self.m.site("baseframe").id
+        for j in range(self.m.njnt):                   # leftover free objects (pick-and-place cube)
+            if self.m.jnt_type[j] == mujoco.mjtJoint.mjJNT_FREE:
+                b = self.m.jnt_bodyid[j]
+                for g in range(self.m.ngeom):
+                    if self.m.geom_bodyid[g] == b:
+                        self.m.geom_rgba[g, 3] = 0; self.m.geom_contype[g] = self.m.geom_conaffinity[g] = 0
+                self.m.body_gravcomp[b] = 1
         mujoco.mj_forward(self.m, self.d)
 
     def set_q(self, q):
@@ -160,7 +180,10 @@ def status_line(arm, ticks=None):
 
 # ------------------------------------------------------------------ mirror
 def mirror(a):
-    jm = JointMap.load(a.map, lerobot_cal_path(a.robot_id))
+    jm = (JointMap.from_lerobot(lerobot_cal_path(a.robot_id)) if a.fresh and lerobot_cal_path(a.robot_id)
+          else JointMap.load(a.map, lerobot_cal_path(a.robot_id)))
+    print("joint map:", "LeRobot calibration (fresh)" if a.fresh else
+          ("saved " + a.map if Path(a.map).exists() else "LeRobot calibration"))
     arm = Arm()
     state = dict(ref=False, last=None, quit=False)
 
@@ -193,12 +216,19 @@ def mirror(a):
                 elif cmd == "claw":
                     jm.claw["open_tick" if args[0] == "open" else "closed_tick"] = float(ticks["gripper"])
                     print("claw", args[0], "=", ticks["gripper"])
+                elif cmd == "reset":
+                    cal = lerobot_cal_path(a.robot_id)
+                    if not cal:
+                        print("no LeRobot calibration found for", a.robot_id)
+                    else:
+                        fresh = JointMap.from_lerobot(cal); jm.j, jm.claw = fresh.j, fresh.claw
+                        print("map reset to LeRobot's calibration (middle of each range = 0); `save` to keep")
                 elif cmd == "show":
                     print(json.dumps(jm.to_dict(), indent=1))
                 elif cmd == "save":
                     jm.save(a.map); print("saved", a.map)
                 else:
-                    print("commands: ref | zero [joint] | flip <joint> | nudge <joint> <deg> | claw open|closed | show | save")
+                    print("commands: ref | reset | zero [joint] | flip <joint> | nudge <joint> <deg> | claw open|closed | show | save")
             except (KeyError, IndexError, ValueError, TypeError) as exc:
                 print("bad command:", exc, "(joints:", ", ".join(HINGES) + ")")
 
@@ -302,6 +332,7 @@ def main(argv=None):
     ap.add_argument("--map", default=str(MAP_PATH))
     ap.add_argument("--robot-id", default="jenga_follower", help="LeRobot calibration name (claw ends)")
     ap.add_argument("--speed", type=float, default=250.0, help="sim: max joint speed, ticks/s")
+    ap.add_argument("--fresh", action="store_true", help="mirror: ignore a saved joint map, start from LeRobot's calibration")
     a = ap.parse_args(argv)
     (mirror if a.mode == "mirror" else sim)(a)
 
