@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Read-only SO-101 telemetry for the episode recorder (replaces the VR teleop hook).
 
-Reads every servo's Present_Position, Goal_Position and Present_Current over the
+Reads every servo's Present_Position, Goal_Position, Present_Current and Present_Load over the
 bus and publishes them with `publish_telemetry` for
 `scripts/pipeline/03_record_episode.py --hardware --telemetry ...`.
 
@@ -11,7 +11,8 @@ the scripted controller drive it in another process later, once that exists).
 
   joint_state = Present_Position   (raw STS3215 ticks, 0-4095; 4096 ticks per turn)
   action      = Goal_Position      (the command the servo is holding: what was actually sent)
-  current_ma  = Present_Current    (6.5 mA per unit on the STS3215; the wiggle-force signal)
+  current_ma  = Present_Current    (6.5 mA per unit; too coarse for Jenga-sized loads)
+  load_pct    = Present_Load       (0.1 % of max torque per unit, signed; THE wiggle-force signal)
 
 Usage (same machine as the recorder; both use time.monotonic()):
   python scripts/tools/so101_telemetry.py --port /dev/ttyACM0
@@ -31,6 +32,7 @@ from src.hardware.passive import publish_telemetry  # noqa: E402
 
 UNITS = "sts3215_ticks"
 CURRENT_MA_PER_UNIT = 6.5
+LOAD_PCT_PER_UNIT = 0.1          # Present_Load counts 0.1 % of max torque; LeRobot decodes the sign
 IDS = dict(zip(JOINT_NAMES, range(1, 7)))      # LeRobot SO-101 follower ids 1-6
 
 
@@ -56,8 +58,8 @@ class MockBus:
 
     def sync_read(self, name, normalize=False):
         t = time.monotonic() - self.t0
-        base = {"Present_Position": 2048, "Goal_Position": 2048, "Present_Current": 20}[name]
-        amp = 0 if name == "Present_Current" else 200
+        base = {"Present_Position": 2048, "Goal_Position": 2048, "Present_Current": 20, "Present_Load": 50}[name]
+        amp = 0 if name in ("Present_Current", "Present_Load") else 200
         return {n: int(base + amp * math.sin(t + k)) for k, n in enumerate(JOINT_NAMES)}
 
     def disconnect(self, disable_torque=False):
@@ -73,7 +75,7 @@ def _sync_read(bus, reg):
 
 def read_once(bus):
     out = {}
-    for reg in ("Present_Position", "Goal_Position", "Present_Current"):
+    for reg in ("Present_Position", "Goal_Position", "Present_Current", "Present_Load"):
         vals = _sync_read(bus, reg)
         out[reg] = ([float(vals[n]) for n in JOINT_NAMES], time.monotonic())
     return out
@@ -111,10 +113,12 @@ def main(argv=None):
             pos, t_pos = r["Present_Position"]
             goal, t_goal = r["Goal_Position"]
             cur, _ = r["Present_Current"]
+            load, _ = r["Present_Load"]
             publish_telemetry(a.out, joint_state=pos, action=goal, state_timestamp=t_pos, action_timestamp=t_goal,
                               sequence_id=seq, joint_names=list(JOINT_NAMES), joint_units=UNITS,
                               calibration_version=a.calibration_version,
-                              extra=dict(current_ma=[c * CURRENT_MA_PER_UNIT for c in cur], mock=bool(a.mock)))
+                              extra=dict(current_ma=[c * CURRENT_MA_PER_UNIT for c in cur],
+                                         load_pct=[x * LOAD_PCT_PER_UNIT for x in load], mock=bool(a.mock)))
             seq += 1
             if seq % max(1, int(a.hz * 10)) == 0:
                 print(f"\r{seq} samples, {failures} failed reads", end="", flush=True)

@@ -18,7 +18,11 @@ class FakeBus:
         self.writes, self.torque = [], None
 
     def sync_read(self, reg, normalize=False):
-        return dict(self.pos) if reg != "Present_Current" else {n: 3 for n in JOINT_NAMES}
+        if reg == "Present_Current":
+            return {n: 3 for n in JOINT_NAMES}
+        if reg == "Present_Load":
+            return {n: -80 for n in JOINT_NAMES}
+        return dict(self.pos)
 
     def sync_write(self, reg, values, normalize=True):
         assert reg == "Goal_Position" and normalize is False
@@ -89,7 +93,7 @@ def test_publishes_telemetry_the_recorder_accepts(tmp_path):
     bus, t = make(tmp_path)
     t.publish(); t.publish()
     v = TelemetryFile(tmp_path / "t.json", JOINT_NAMES, gt.UNITS, "c").read()
-    assert v["sequence_id"] == 1 and len(v["current_ma"]) == 6 and v["source"] == "gamepad_teleop"
+    assert v["sequence_id"] == 1 and len(v["current_ma"]) == 6 and v["load_pct"] == [-8.0] * 6 and v["source"] == "gamepad_teleop"
 
 
 def test_held_button_acts_once(tmp_path):

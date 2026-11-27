@@ -273,6 +273,9 @@ class SimBus:
         if reg == "Present_Current":                 # actuator effort, scaled to servo current units
             f = self.arm.d.actuator_force
             return {n: abs(float(f[self.arm.act[n]])) / 3.35 * 400 for n in JOINT_NAMES}
+        if reg == "Present_Load":                    # signed effort as 0.1 % of the 3.35 N·m stall torque
+            f = self.arm.d.actuator_force
+            return {n: float(f[self.arm.act[n]]) / 3.35 * 1000 for n in JOINT_NAMES}
         raise KeyError(reg)
 
     def sync_write(self, reg, values, normalize=True):

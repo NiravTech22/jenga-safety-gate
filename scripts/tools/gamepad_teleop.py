@@ -4,7 +4,7 @@ and publish telemetry for the episode recorder at the same time.
 
 This REPLACES so101_telemetry.py while it runs: only one process may own the servo bus.
 The recorder reads the same telemetry file, now with the servos doing the pulling, so
-Present_Current measures how hard the block resists.
+Present_Load (load_pct) measures how hard the block resists.
 
 Safety
   * --dry-run (do this first): reads the arm and the pad, prints the goals it WOULD send,
@@ -39,7 +39,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from so101_telemetry import CURRENT_MA_PER_UNIT, UNITS, MockBus, _sync_read, open_bus  # noqa: E402
+from so101_telemetry import CURRENT_MA_PER_UNIT, LOAD_PCT_PER_UNIT, UNITS, MockBus, _sync_read, open_bus  # noqa: E402
 from src.hardware.kinematics import JOINT_NAMES  # noqa: E402
 from src.hardware.passive import publish_telemetry  # noqa: E402
 
@@ -186,11 +186,13 @@ class Teleop:
     def publish(self):
         pos = _sync_read(self.bus, "Present_Position"); t_pos = time.monotonic()
         cur = _sync_read(self.bus, "Present_Current")
+        load = _sync_read(self.bus, "Present_Load")
         publish_telemetry(self.out, joint_state=[float(pos[n]) for n in JOINT_NAMES],
                           action=[float(self.goal[n]) for n in JOINT_NAMES],
                           state_timestamp=t_pos, action_timestamp=time.monotonic(), sequence_id=self.seq,
                           joint_names=list(JOINT_NAMES), joint_units=UNITS, calibration_version=self.cal_version,
                           extra=dict(current_ma=[float(cur[n]) * CURRENT_MA_PER_UNIT for n in JOINT_NAMES],
+                                     load_pct=[float(load[n]) * LOAD_PCT_PER_UNIT for n in JOINT_NAMES],
                                      armed=self.armed, dry_run=self.dry, source="gamepad_teleop"))
         self.seq += 1
 
