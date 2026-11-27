@@ -53,7 +53,7 @@ IK targets for feedback. Record per-joint units in the units string if mixed.
 With the hook running, replace the example indices and identifiers:
 
 ```powershell
-python scripts/pipeline/03_record_episode.py --hardware --overhead 0 --wrist 1 --telemetry logs/teleop_latest.json --session-id session-001 --tower-id tower-001 --calibration-version so101-cal-001 --joint-units radians --operator Nirav --seconds 60 --preview
+python scripts/pipeline/03_record_episode.py --hardware --telemetry logs/teleop_latest.json --session-id session-001 --tower-id tower-001 --calibration-version so101-cal-001 --joint-units radians --operator Nirav --seconds 60 --preview
 python -m src.data.replay data/episodes/PRINTED_EPISODE_ID/episode.json
 ```
 

@@ -29,7 +29,7 @@ v4l2-ctl -d /dev/video0 -c auto_exposure=1 -c exposure_time_absolute=200 \
 ```
 
 Do the same for the wrist camera. For Nirav's two cameras this is scripted:
-`./scripts/tools/lock_cameras.sh` (run it before every session; settings reset on replug). The overhead camera must not move after
+`./scripts/tools/lock_cameras.sh` (run it before every session; settings reset on replug). Cameras are found by their stable `/dev/v4l/by-id/` names (overhead = Jieli USB PHY 2.0, wrist = Generic USB Camera), so `/dev/videoN` swaps after a replug no longer matter; the recorder refuses to start if either picture is black. The overhead camera must not move after
 calibration; if it is bumped, redo step 2. Use fixed lighting.
 
 ## 2. Calibrate
@@ -96,7 +96,7 @@ every joint stays inside its calibrated range.
 ## 4. Record an episode (terminal 2)
 
 ```bash
-python scripts/pipeline/03_record_episode.py --hardware --overhead 0 --wrist 2 \
+python scripts/pipeline/03_record_episode.py --hardware \
   --telemetry logs/arm_latest.json --calibration-version cal-2026-11-21 \
   --joint-units sts3215_ticks --session-id s001 --tower-id t001 --operator Nirav \
   --scenario stable_easy --seconds 60 --preview

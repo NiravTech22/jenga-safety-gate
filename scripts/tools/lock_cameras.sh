@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
 # Lock camera image settings before every recording session (they reset on replug/reboot).
-#   ./scripts/tools/lock_cameras.sh                     # overhead /dev/video2, wrist /dev/video0
-#   ./scripts/tools/lock_cameras.sh /dev/video2 /dev/video0 [wrist_exposure]
+#   ./scripts/tools/lock_cameras.sh                     # each camera by its stable by-id name
+#   ./scripts/tools/lock_cameras.sh "" "" 330           # same, wrist exposure 330
+#   ./scripts/tools/lock_cameras.sh /dev/video2 /dev/video0 330   # explicit devices
+# /dev/videoN numbers swap on replug; the by-id links follow the physical camera.
 # Values from Nirav's cameras, 2026-11-21. Use the same lighting every session:
 # the overhead camera has no exposure control, so its auto-exposure follows the light.
 set -euo pipefail
-OVERHEAD=${1:-/dev/video2}
-WRIST=${2:-/dev/video0}
-WRIST_EXPOSURE=${3:-166}     # 100 us units: 166 = 16.6 ms, under the 33 ms of one 30 fps frame
+OVERHEAD=${1:-/dev/v4l/by-id/usb-Jieli_Technology_USB_PHY_2.0-video-index0}
+WRIST=${2:-/dev/v4l/by-id/usb-Generic_USB_Camera_200901010001-video-index0}
+WRIST_EXPOSURE=${3:-330}     # 100 us units: 330 = 33 ms (166 was too dark in Nirav's room)
+for dev in "$OVERHEAD" "$WRIST"; do
+  [ -e "$dev" ] || { echo "camera $dev not found (unplugged?); see: ls -l /dev/v4l/by-id/" >&2; exit 1; }
+done
 
 # Overhead: only white balance is adjustable (0-255 scale); 51 gave correct colour.
 v4l2-ctl -d "$OVERHEAD" -c white_balance_temperature=51
