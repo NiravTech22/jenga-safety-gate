@@ -12,7 +12,7 @@ Each episode = one extraction attempt, recorded as:
 | Overhead frames | fixed camera, calibrated to the robot frame | tower state (lean, block poses) by classical CV; V-JEPA input |
 | Wrist frames | camera on the claw | close view of the block being pulled; V-JEPA input |
 | Joint positions + goal positions | `so101_telemetry.py` (read-only) | where the arm was, what it was told |
-| Servo current | same | pull resistance, **only when the arm does the pulling** (see step 5) |
+| Servo load (`load_pct`) | same | pull resistance, **only when the arm does the pulling** (see step 5) |
 | `r` / `c` key presses | operator | removal time, collapse-onset time |
 
 Nothing here trains a model yet. Training starts once there are enough labelled
@@ -77,7 +77,7 @@ torque. With torque off you can move the arm by hand. Test without the arm:
 
 ### 3b. Or drive the arm with a gamepad (instead of step 3)
 
-With a gamepad the servos do the pulling, so `current_ma` becomes a real measure of
+With a gamepad the servos do the pulling, so `load_pct` (Present_Load, 0.1 % of max torque per unit, signed) becomes a real measure of
 how hard the block resists. `gamepad_teleop.py` both drives the arm and publishes the
 same telemetry file, so do **not** run `so101_telemetry.py` at the same time.
 
@@ -122,7 +122,7 @@ the arm's torque off and the claw moved by hand to face the block. The wrist
 camera then sees what it will see later. One extraction per episode.
 
 These are **visual + kinematics episodes only**. With torque off the servos supply
-no force, so `current_ma` in them does not measure block resistance and must not
+no force, so `load_pct` and `current_ma` in them does not measure block resistance and must not
 be used as a tightness label. Tightness ground truth for now is your own note of
 which blocks were tight or loose (write it in the episode, e.g. with the `note`
 field, or a per-session text file). Force data comes once the arm pulls the blocks.
@@ -146,3 +146,8 @@ layers 2-7). That is ground truth the sim cannot provide.
 2. V-JEPA 2 features per clip: `scripts/tools/extract_vjepa_features.py`.
 3. Fine-tune the risk head (not the V-JEPA backbone) on sim + real features,
    then set the gate threshold on a held-out set of real episodes.
+
+**Why load, not current.** Probe at 5.3 V supply (2026-11-27): holding pose, the elbow read
+Present_Current 3 units (~20 mA, 6.5 mA/unit) while Present_Load read 84; squeezing the claw moved
+current 0→4 but load 0→80. Current is too coarse for Jenga-sized forces, so `load_pct` is the
+force signal; `current_ma` is still logged. Episodes recorded before this change have no `load_pct`.

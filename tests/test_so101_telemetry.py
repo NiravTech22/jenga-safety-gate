@@ -17,7 +17,7 @@ def test_mock_bridge_publishes_valid_telemetry(tmp_path):
     out = tmp_path / "arm.json"
     assert tel.main(["--mock", "--out", str(out), "--seconds", "0.2", "--hz", "50"]) == 0
     v = TelemetryFile(out, JOINT_NAMES, tel.UNITS, "so101-raw-ticks").read()
-    assert len(v["joint_state"]) == len(v["action"]) == len(v["current_ma"]) == 6
+    assert len(v["joint_state"]) == len(v["action"]) == len(v["current_ma"]) == len(v["load_pct"]) == 6
     assert v["sequence_id"] > 0 and v["mock"] is True
 
 
@@ -32,7 +32,7 @@ def test_bridge_survives_bus_errors(tmp_path, monkeypatch):
 
     def flaky(self, name, normalize=False):
         calls["n"] += 1
-        if calls["n"] % 4 == 0:
+        if calls["n"] % 7 == 0:          # not a multiple of the reads per tick
             raise RuntimeError("no status packet")
         return real(self, name, normalize)
 
